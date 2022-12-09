@@ -1,16 +1,19 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-parcelize'
+    id 'kotlinx-serialization'
+    id 'com.google.protobuf'
 }
 
 android {
     namespace 'app.meshmail'
-    compileSdk 32
+    compileSdk 33
 
     defaultConfig {
         applicationId "app.meshmail"
         minSdk 30
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -30,20 +33,47 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-    buildFeatures {
-        viewBinding true
+}
+
+
+// per protobuf-gradle-plugin docs, this is recommended for android
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.21.1'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    // turned off for now so I can use json printing in debug panel
+                    // use the smaller android version of the library
+                    //option "lite"
+                }
+                kotlin {
+                }
+            }
+        }
     }
 }
 
+
 dependencies {
 
+
+    implementation "androidx.core:core-ktx:1.9.0"
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.7.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.5.3'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.5.3'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:1.0-M1-1.4.0-rc"
+    implementation 'com.google.protobuf:protobuf-kotlin:3.21.5'
+    implementation 'com.sun.mail:javax.mail:1.6.2'
+    implementation 'org.osmdroid:osmdroid-android:6.1.14'
+    //implementation 'com.github.MKergall:osmbonuspack:6.9.0'
+    implementation 'org.osmdroid:osmdroid-wms:6.1.14'
+    api 'mil.nga.mgrs:mgrs-android:2.2.0'
+    implementation 'org.osmdroid:osmdroid-geopackage:6.1.14'
 }

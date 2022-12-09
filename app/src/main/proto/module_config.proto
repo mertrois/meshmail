@@ -1,0 +1,466 @@
+syntax = "proto3";
+
+option java_package = "com.geeksville.mesh";
+option java_outer_classname = "ModuleConfigProtos";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/meshtastic/go/generated";
+
+/*
+ * Module Config
+ */
+message ModuleConfig {
+
+  /*
+   * MQTT Client Config
+   */
+  message MQTTConfig {
+
+    /*
+     * If a meshtastic node is able to reach the internet it will normally attempt to gateway any channels that are marked as
+     * is_uplink_enabled or is_downlink_enabled.
+    */
+    bool enabled = 1;
+
+    /*
+     * The server to use for our MQTT global message gateway feature.
+     * If not set, the default server will be used
+     */
+    string address = 2;
+
+    /*
+     * MQTT username to use (most useful for a custom MQTT server).
+     * If using a custom server, this will be honoured even if empty.
+     * If using the default server, this will only be honoured if set, otherwise the device will use the default username
+     */
+    string username = 3;
+
+    /*
+     * MQTT password to use (most useful for a custom MQTT server).
+     * If using a custom server, this will be honoured even if empty.
+     * If using the default server, this will only be honoured if set, otherwise the device will use the default password
+     */
+    string password = 4;
+
+    /*
+     * Whether to send encrypted or decrypted packets to MQTT.
+     * This parameter is only honoured if you also set server
+     * (the default official mqtt.meshtastic.org server can handle encrypted packets)
+     * Decrypted packets may be useful for external systems that want to consume meshtastic packets
+     */
+    bool encryption_enabled = 5;
+
+    /*
+     * Whether to send / consume json packets on MQTT
+     */
+    bool json_enabled = 6;
+  }
+
+  /*
+   * Audio Config for codec2 voice
+   */
+  message AudioConfig {
+
+    /*
+     * Baudrate for codec2 voice
+     */
+    enum Audio_Baud {
+      CODEC2_DEFAULT = 0;
+      CODEC2_3200 = 1; 
+      CODEC2_2400 = 2; 
+      CODEC2_1600 = 3; 
+      CODEC2_1400 = 4; 
+      CODEC2_1300 = 5; 
+      CODEC2_1200 = 6; 
+      CODEC2_700 = 7;
+      CODEC2_700B = 8; 
+    };
+
+    /*
+     * Whether Audio is enabled
+     */
+    bool codec2_enabled = 1;
+
+    /*
+     * ADC where Microphone is connected
+     */
+    uint32 mic_chan = 2;
+
+    /*
+     * DAC where Speaker is connected
+     */
+    uint32 amp_pin = 3;
+
+    /*
+     * PTT Pin
+     */
+    uint32 ptt_pin = 4;
+
+    /*
+     * The audio sample rate to use for codec2
+     */
+    Audio_Baud bitrate = 5;
+  }
+
+  /*
+   * Serial Config
+   */
+  message SerialConfig {
+
+    /*
+     * TODO: REPLACE
+     */
+    enum Serial_Baud {
+      BAUD_DEFAULT = 0;
+      BAUD_110 = 1;
+      BAUD_300 = 2;
+      BAUD_600 = 3;
+      BAUD_1200 = 4;
+      BAUD_2400 = 5;
+      BAUD_4800 = 6;
+      BAUD_9600 = 7;
+      BAUD_19200 = 8;
+      BAUD_38400 = 9;
+      BAUD_57600 = 10;
+      BAUD_115200 = 11;
+      BAUD_230400 = 12;
+      BAUD_460800 = 13;
+      BAUD_576000 = 14;
+      BAUD_921600 = 15;
+    };
+
+    /*
+     * TODO: REPLACE
+     */
+    enum Serial_Mode {
+      DEFAULT = 0;
+      SIMPLE = 1;
+      PROTO = 2;
+      TEXTMSG = 3;
+      NMEA = 4;
+    };
+
+    /*
+     * Preferences for the SerialModule
+     * FIXME - Move this out of UserPreferences and into a section for module configuration.
+     */
+    bool enabled = 1;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool echo = 2;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    uint32 rxd = 3;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    uint32 txd = 4;
+
+    /*
+     * TODO: REPLACE
+     */
+    Serial_Baud baud = 5;
+
+    /*
+     * TODO: REPLACE
+     */
+    uint32 timeout = 6;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    Serial_Mode mode = 7;
+
+  }
+
+  /*
+   * External Notifications Config
+   */
+  message ExternalNotificationConfig {
+
+    /*
+     * Preferences for the ExternalNotificationModule
+     */
+    bool enabled = 1;
+
+    /*
+     * TODO: REPLACE
+     */
+    uint32 output_ms = 2;
+
+    /*
+     * TODO: REPLACE
+     */
+    uint32 output = 3;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool active = 4;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool alert_message = 5;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool alert_bell = 6;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool use_pwm = 7;
+ 
+
+  }
+
+  /*
+   * Store and Forward Module Config
+   */
+  message StoreForwardConfig {
+    /*
+     * Enable the Store and Forward Module
+     */
+    bool enabled = 1;
+
+    /*
+     * TODO: REPLACE
+     */
+    bool heartbeat = 2;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    uint32 records = 3;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    uint32 history_return_max = 4;
+ 
+    /*
+     * TODO: REPLACE
+     */
+    uint32 history_return_window = 5;
+
+  }
+
+  /*
+   * Preferences for the RangeTestModule
+   */
+  message RangeTestConfig {
+    /*
+     * Enable the Range Test Module
+     */
+    bool enabled = 1;
+
+    /*
+     * Send out range test messages from this node
+     */
+    uint32 sender = 2;
+
+    /*
+     * Bool value indicating that this node should save a RangeTest.csv file. 
+     * ESP32 Only
+     */
+    bool save = 3;
+  }
+
+  /*
+   * Configuration for both device and environment metrics
+   */
+  message TelemetryConfig {
+    
+    /*
+     * Interval in seconds of how often we should try to send our
+     * device metrics to the mesh
+     */
+    uint32 device_update_interval = 1;
+
+    /*
+     * Interval in seconds of how often we should try to send our
+     * environment measurements to the mesh
+     */
+
+    uint32 environment_update_interval = 2;
+
+    /*
+     * Preferences for the Telemetry Module (Environment)
+     * Enable/Disable the telemetry measurement module measurement collection
+     */
+    bool environment_measurement_enabled = 3;
+
+    /*
+     * Enable/Disable the telemetry measurement module on-device display
+     */
+    bool environment_screen_enabled = 4;
+
+    /*
+     * We'll always read the sensor in Celsius, but sometimes we might want to
+     * display the results in Fahrenheit as a "user preference".
+     */
+    bool environment_display_fahrenheit = 5;
+  }
+
+  /*
+   * TODO: REPLACE
+   */
+  message CannedMessageConfig {
+    
+    /*
+     * TODO: REPLACE
+     */
+    enum InputEventChar {
+    
+      /*
+       * TODO: REPLACE
+       */
+      NONE  = 0;
+    
+      /*
+       * TODO: REPLACE
+       */
+      UP    = 17;
+    
+      /*
+       * TODO: REPLACE
+       */
+      DOWN  = 18;
+    
+      /*
+       * TODO: REPLACE
+       */
+      LEFT  = 19;
+    
+      /*
+       * TODO: REPLACE
+       */
+      RIGHT =  20;
+    
+      /*
+       * '\n'
+       */
+      SELECT = 10;
+    
+      /*
+       * TODO: REPLACE
+       */
+      BACK  = 27;
+    
+      /*
+       * TODO: REPLACE
+       */
+      CANCEL = 24;
+    }
+
+    /*
+     * Enable the rotary encoder #1. This is a 'dumb' encoder sending pulses on both A and B pins while rotating.
+     */
+    bool rotary1_enabled = 1;
+
+    /*
+     * GPIO pin for rotary encoder A port.
+     */
+    uint32 inputbroker_pin_a = 2;
+ 
+    /*
+     * GPIO pin for rotary encoder B port.
+     */
+    uint32 inputbroker_pin_b = 3;
+ 
+    /*
+     * GPIO pin for rotary encoder Press port.
+     */
+    uint32 inputbroker_pin_press = 4;
+ 
+    /*
+     * Generate input event on CW of this kind.
+     */
+    InputEventChar inputbroker_event_cw = 5;
+ 
+    /*
+     * Generate input event on CCW of this kind.
+     */
+    InputEventChar inputbroker_event_ccw = 6;
+ 
+    /*
+     * Generate input event on Press of this kind.
+     */
+    InputEventChar inputbroker_event_press = 7;
+ 
+    /*
+     * Enable the Up/Down/Select input device. Can be RAK rotary encoder or 3 buttons. Uses the a/b/press definitions from inputbroker.
+     */
+    bool updown1_enabled = 8;
+    
+    /*
+     * Enable/disable CannedMessageModule.
+     */
+    bool enabled = 9;
+ 
+    /*
+     * Input event origin accepted by the canned message module.
+     * Can be e.g. "rotEnc1", "upDownEnc1" or keyword "_any"
+     */
+    string allow_input_source = 10;
+ 
+    /*
+     * CannedMessageModule also sends a bell character with the messages.
+     * ExternalNotificationModule can benefit from this feature.
+     */
+    bool send_bell = 11;
+  }
+
+  /*
+   * TODO: REPLACE
+   */
+  oneof payload_variant {
+
+    /*
+     * TODO: REPLACE
+     */
+    MQTTConfig mqtt = 1;
+
+    /*
+     * TODO: REPLACE
+     */
+    SerialConfig serial = 2;
+
+    /*
+     * TODO: REPLACE
+     */
+    ExternalNotificationConfig external_notification = 3;
+
+    /*
+     * TODO: REPLACE
+     */
+    StoreForwardConfig store_forward = 4;
+
+    /*
+     * TODO: REPLACE
+     */
+    RangeTestConfig range_test = 5;
+
+    /*
+     * TODO: REPLACE
+     */
+    TelemetryConfig telemetry = 6;
+
+    /*
+     * TODO: REPLACE
+     */
+    CannedMessageConfig canned_message = 7;
+
+    /*
+     * TODO: REPLACE
+     */
+    AudioConfig audio = 8;
+
+  }
+}

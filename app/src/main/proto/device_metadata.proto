@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_package = "com.geeksville.mesh";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/meshtastic/go/generated";
+
+option java_outer_classname = "DeviceMetadataProtos";
+
+/*
+ * Device metadata response 
+ */
+message DeviceMetadata {
+  /*
+   * Device firmware version string
+   */
+  string firmware_version = 1;
+
+  /*
+   * Device state version
+   */
+  uint32 device_state_version = 2;
+
+  /*
+   * Indicates whether the device can shutdown CPU natively or via power management chip
+   */
+  bool canShutdown = 3;
+
+  /*
+   * Indicates that the device has native wifi capability
+   */
+  bool hasWifi = 4;
+
+  /*
+   * Indicates that the device has native bluetooth capability
+   */
+  bool hasBluetooth = 5;
+
+  /*
+   * Indicates that the device has an ethernet peripheral
+   */
+  bool hasEthernet = 6;
+}
