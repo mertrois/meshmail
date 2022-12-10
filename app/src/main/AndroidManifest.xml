@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-
+        android:name="app.meshmail.MeshmailApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -15,7 +15,7 @@
         tools:targetApi="31"
         tools:replace="android:allowBackup">
         <activity
-            android:name=".MainActivity"
+            android:name="app.meshmail.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,6 +27,7 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        <service android:name="app.meshmail.mail.MailSyncService" />
 
     </application>
     <queries>

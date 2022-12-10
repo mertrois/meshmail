@@ -5,6 +5,7 @@ plugins {
     id 'kotlinx-serialization'
     id 'com.google.protobuf'
 }
+apply plugin: 'kotlin-kapt'
 
 android {
     namespace 'app.meshmail'
@@ -16,7 +17,8 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
-
+        //multiDexEnabled true
+        //multiDexKeepFile file('multidex-keep-classes.txt')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -32,6 +34,9 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+    }
+    packagingOptions {
+        pickFirst 'META-INF/LICENSE.txt' // picks the JavaMail license file
     }
 }
 
@@ -59,6 +64,11 @@ protobuf {
 
 dependencies {
 
+    //implementation 'com.android.support:multidex:1.0.3'
+
+    implementation "androidx.room:room-runtime:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
+    implementation "androidx.room:room-ktx:$room_version"
 
     implementation "androidx.core:core-ktx:1.9.0"
     implementation 'androidx.core:core-ktx:1.7.0'
@@ -70,10 +80,15 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:1.0-M1-1.4.0-rc"
     implementation 'com.google.protobuf:protobuf-kotlin:3.21.5'
-    implementation 'com.sun.mail:javax.mail:1.6.2'
+    //implementation 'com.sun.mail:javax.mail:1.6.2'
     implementation 'org.osmdroid:osmdroid-android:6.1.14'
     //implementation 'com.github.MKergall:osmbonuspack:6.9.0'
     implementation 'org.osmdroid:osmdroid-wms:6.1.14'
     api 'mil.nga.mgrs:mgrs-android:2.2.0'
     implementation 'org.osmdroid:osmdroid-geopackage:6.1.14'
+
+
+    implementation 'com.sun.mail:android-mail:1.5.6'
+    implementation 'com.sun.mail:android-activation:1.5.6'
+
 }

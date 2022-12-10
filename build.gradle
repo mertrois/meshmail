@@ -3,7 +3,7 @@ buildscript {
         kotlin_version = '1.6.21'
         //coroutines_version = '1.6.0'
         //lifecycle_version = "2.5.1"
-        //room_version = '2.4.3'
+        room_version = '2.4.3'
         //hilt_version = '2.40.5'
         //datastore_version = '1.0.0'
         //compose_version = '1.2.0-rc02'
@@ -12,7 +12,11 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        //maven { url "https://kotlin.bintray.com/kotlinx" }
+        jcenter()
+
+        maven {
+            url "https://maven.java.net/content/groups/public/"
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.3.1'

@@ -16,12 +16,15 @@ import com.geeksville.mesh.NodeInfo
 //// imap
 
 import java.util.Properties
-import javax.mail.Folder
-import javax.mail.Message
-import javax.mail.Session
-import javax.mail.Store
 import android.os.AsyncTask
+import androidx.room.Room
 import app.meshmail.R
+import app.meshmail.data.AppDatabase
+import app.meshmail.data.TestEntity
+import app.meshmail.mail.MailSyncService
+import javax.mail.*
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeMessage
 
 
 class MainActivity : AppCompatActivity() {
@@ -29,9 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var inputText: TextView
 
+    private lateinit var mailSyncService: MailSyncService
+
     private var meshService: IMeshService? = null
 
-    /// imap
 
 
     private val serviceIntent = Intent().apply {
@@ -99,10 +103,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkMail() {
-        Log.d("IMAP", "checking for messages")
-        CheckMessagesTask().execute()
-    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -115,7 +117,6 @@ class MainActivity : AppCompatActivity() {
             Log.d(MainActivity::class.java.simpleName, "button clicked")
             sendMessage(inputText.text.toString())
             inputText.text = ""
-            checkMail()
         }
 
         try {
@@ -127,6 +128,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         registerReceiver(receiver, intentFilter)
+
+        Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
     }
 
     override fun onDestroy() {
@@ -135,38 +138,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    inner class CheckMessagesTask : AsyncTask<Void, Void, Int>() {
-        override fun doInBackground(vararg params: Void?): Int {
-            // Replace with your own values
-            val imapHost = "imap.dreamhost.com"
-            val imapPort = 993
-            val username = "test@meshmail.app"
-            val password = "4xxr7hdT"
 
-            val properties = Properties().apply {
-                put("mail.imap.ssl.enable", "true")
-                put("mail.imap.host", imapHost)
-                put("mail.imap.port", imapPort)
-            }
-
-            val session = Session.getInstance(properties)
-            val store = session.getStore("imap")
-            store.connect(username, password)
-
-            val inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_ONLY)
-
-            val messages = inbox.getMessages()
-            for(msg in messages) {
-                sendMessage(msg.subject)
-            }
-            return messages.size
-        }
-
-        override fun onPostExecute(result: Int) {
-            Log.d("IMAP", "You have $result new messages.")
-        }
-    }
 }
 
 
