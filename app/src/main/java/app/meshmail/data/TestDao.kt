@@ -11,4 +11,7 @@ interface TestDao {
 
     @Insert
     fun insert(myEntity: TestEntity)
+
+    @Query("SELECT * from test_entity where messageId = :id LIMIT 1")
+    fun getByMessageId(id: String): TestEntity?
 }

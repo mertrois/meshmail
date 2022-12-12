@@ -1,12 +1,7 @@
 buildscript {
     ext {
         kotlin_version = '1.6.21'
-        //coroutines_version = '1.6.0'
-        //lifecycle_version = "2.5.1"
         room_version = '2.4.3'
-        //hilt_version = '2.40.5'
-        //datastore_version = '1.0.0'
-        //compose_version = '1.2.0-rc02'
     }
 
     repositories {
@@ -14,16 +9,19 @@ buildscript {
         mavenCentral()
         jcenter()
 
-        maven {
-            url "https://maven.java.net/content/groups/public/"
-        }
+//        maven {
+//            url "https://maven.java.net/content/groups/public/"
+//        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.3.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+
         // protobuf plugin - docs here https://github.com/google/protobuf-gradle-plugin
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.18'
+
+
     }
 }
 

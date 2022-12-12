@@ -3,28 +3,20 @@ package app.meshmail
 import android.content.*
 import android.os.Bundle
 import android.os.IBinder
-import android.os.RemoteException
+import android.preference.PreferenceManager
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.geeksville.mesh.IMeshService
 import android.util.Log
 import android.widget.TextView
+import app.meshmail.data.protobuf.EmailOuterClass
 import com.geeksville.mesh.DataPacket
 import com.geeksville.mesh.MessageStatus
 import com.geeksville.mesh.NodeInfo
 
-//// imap
 
-import java.util.Properties
-import android.os.AsyncTask
-import androidx.room.Room
-import app.meshmail.R
-import app.meshmail.data.AppDatabase
-import app.meshmail.data.TestEntity
 import app.meshmail.mail.MailSyncService
-import javax.mail.*
-import javax.mail.internet.InternetAddress
-import javax.mail.internet.MimeMessage
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -32,11 +24,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var inputText: TextView
 
-    private lateinit var mailSyncService: MailSyncService
-
     private var meshService: IMeshService? = null
-
-
 
     private val serviceIntent = Intent().apply {
         setClassName(
@@ -48,12 +36,14 @@ class MainActivity : AppCompatActivity() {
     private val serviceConnection = object: ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             meshService = IMeshService.Stub.asInterface(service)
+            (getApplication() as MeshmailApplication).meshService = meshService // hacky, just for now
             // this@MainActivity.meshService = ...
             Log.d(MainActivity::class.java.simpleName, "service connected")
         }
         override fun onServiceDisconnected(name: ComponentName) {
             Log.d(MainActivity::class.java.simpleName, "service disconnected")
             meshService = null
+            (getApplication() as MeshmailApplication).meshService = null // hacky, change later.
         }
     }
 
@@ -74,10 +64,16 @@ class MainActivity : AppCompatActivity() {
                 else -> {
                     val act = intent.action ?: ""
                     Log.d("onReceive", "received an action: $act")
-                    var data:DataPacket = intent?.getParcelableExtra("com.geeksville.mesh.Payload")!!
+                    try {
+                        var data: DataPacket =
+                            intent?.getParcelableExtra("com.geeksville.mesh.Payload")!!
+                        var em = EmailOuterClass.Email.parseFrom(data.bytes)
+                        statusText.append(em.toString())
+                        statusText.append("\n")
+                    } catch(e: Exception) {
+                        Log.e("onReceive", "error decoding protobuf. unexpected input.")
+                    }
 
-                    statusText.append(data.bytes?.decodeToString())
-                    statusText.append("\n")
                 }
             }
         }
@@ -87,12 +83,12 @@ class MainActivity : AppCompatActivity() {
         addAction("com.geeksville.mesh.NODE_CHANGE")
         addAction("com.geeksville.mesh.MESH_CONNECTED")
         addAction("com.geeksville.mesh.RECEIVED.309")
-        addAction("com.geeksville.mesh.RECEIVED_OPAQUE")
-        addAction("com.geeksville.mesh.RECEIVED_DATA")
-        addAction("com.geeksville.mesh.MESSAGE_STATUS_CHANGED")
+        //addAction("com.geeksville.mesh.RECEIVED_OPAQUE")
+        //addAction("com.geeksville.mesh.RECEIVED_DATA")
+        //addAction("com.geeksville.mesh.MESSAGE_STATUS_CHANGED")
     }
 
-    private fun sendMessage(s: String) {
+    fun sendMessage(s: String) {
         val dp = DataPacket(to=DataPacket.ID_BROADCAST,
             s.toByteArray(),
             dataType=309)
@@ -106,6 +102,24 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val sharedPreferenceContents = sharedPreferences.all
+
+        if(sharedPreferenceContents["APP_MODE"] == null) {
+            val editor = sharedPreferences.edit()
+            editor.putString("APP_MODE", "MODE_CLIENT")
+            editor.apply()
+        }
+
+        val appMode = sharedPreferenceContents["APP_MODE"]
+
+//        var preferences: SharedPreferences? = PreferenceManager.getDefaultSharedPreferences(this)
+//        var editor: SharedPreferences.Editor? = preferences?.edit()
+//
+//        editor?.putString("APP_MODE", "MODE_CLIENT")
+//        editor?.apply()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -129,12 +143,15 @@ class MainActivity : AppCompatActivity() {
 
         registerReceiver(receiver, intentFilter)
 
-        Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
+        if(appMode == "MODE_RELAY")
+            Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
     }
 
     override fun onDestroy() {
         super.onDestroy()
         unbindService(serviceConnection)
+
+
     }
 
 

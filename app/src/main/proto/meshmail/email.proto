@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+//option java_outer_classname = "EmailOuterClass";
+
+message Email {
+  string subject = 1;
+  string from = 2;
+  string to = 3;
+  string body = 4;
+}

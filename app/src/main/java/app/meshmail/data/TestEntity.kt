@@ -9,6 +9,7 @@ data class TestEntity(
     @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "id") var id: Long? = null,
     var subject: String? = "",
     var from: String? = "",
-    var messageId: String? = ""
+    var messageId: String? = "",
+    var body: String? = ""
 )
 
