@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+
+
+
+
+/* do we push shadows, or do we just start pushing fragments? and when n of n for f have arrived, inflate and stick into messages? */
+enum ProtocolMessageType {
+  RESERVED = 0;
+
+  SHADOW_BROADCAST = 1;   // indicates a new inbound message is ready to be downloaded or a new outbound is ready to be uploaded/sent
+  FRAGMENT_REQUEST = 2;   // client or relay would like fragment m of n for message w/ fingerprint f;
+  FRAGMENT_BROADCAST = 3; // fingerprint, m, n, and payload
+
+  STATUS_REQUEST = 4;     // client requests relay send status; or relay requests clients send data (total fragments missing?)
+  STATUS_BROADCAST = 5;   // relay sends status of batteries; internet connection health; ...
+}

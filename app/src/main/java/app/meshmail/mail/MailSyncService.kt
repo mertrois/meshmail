@@ -6,13 +6,16 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
 import androidx.room.Room
-import app.meshmail.MainActivity
 import app.meshmail.MeshmailApplication
-import app.meshmail.data.AppDatabase
-import app.meshmail.data.EmailOuterClass
-import app.meshmail.data.EmailOuterClass.EmailOrBuilder
-import app.meshmail.data.TestEntity
+
+
+import app.meshmail.data.MeshmailDatabase
+import app.meshmail.data.MessageEntity
+import app.meshmail.data.protobuf.MessageOuterClass
+
+import app.meshmail.util.md5
 import com.geeksville.mesh.DataPacket
+
 
 import java.util.*
 import java.util.concurrent.Executors
@@ -26,17 +29,15 @@ import javax.mail.search.FlagTerm
 
 
 
-
-
 class MailSyncService : Service() {
     private val syncInterval: Long = 60 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
 
-    val database: AppDatabase by lazy {
+    val database: MeshmailDatabase by lazy {
         Room.databaseBuilder(
             this,
-            AppDatabase::class.java,
-            "my_database"
+            MeshmailDatabase::class.java,
+            "meshmail_database"
         ).fallbackToDestructiveMigration().build()
     }
 
@@ -49,11 +50,10 @@ class MailSyncService : Service() {
             syncInterval,
             TimeUnit.SECONDS
         )
-
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "mail sync service starting", Toast.LENGTH_SHORT).show()
         return START_STICKY
     }
 
@@ -77,17 +77,28 @@ class MailSyncService : Service() {
     private fun storeMessages(messages: Array<Message>) {
         for (msg in messages) {
             val mid: String = msg.getHeader("Message-ID")[0]
-            if(database.myDao().getByMessageId(mid) == null) {
+            if(database.messageDao().getByServerId(mid) == null) {
                 Log.d(this.javaClass.name, "message not found in db, adding it now")
-                val testEnt = TestEntity()
-                testEnt.subject = msg.subject
-                testEnt.from = msg.from[0].toString()
-                testEnt.messageId = mid
-                testEnt.body = extractReadableBody(msg)
+                var msgEnt = MessageEntity()
+                msgEnt.subject = msg.subject
+                msgEnt.body = extractReadableBody(msg)
+                msgEnt.recipient = msg.allRecipients[0].toString()
+                msgEnt.sender = msg.from[0].toString()
+                msgEnt.serverId = mid
+                msgEnt.receivedDate = msg.receivedDate
 
-                Log.d(this.javaClass.name, testEnt.body!!)
+                msgEnt.isShadow = true // as of this moment, it's a shadow b/c the fragments db isn't fully populated.
 
-                database.myDao().insert(testEnt)
+
+                var fingerprint: String = md5(msgEnt.serverId!!).toString()
+                fingerprint = fingerprint.substring(0,8)
+
+
+
+
+                Log.d(this.javaClass.name, msgEnt.body!!)
+
+                database.messageDao().insert(msgEnt)
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
             }
@@ -95,14 +106,17 @@ class MailSyncService : Service() {
             msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
         }
 
+
+
         // quick testing here
         val x = 1
-        var em = EmailOuterClass.Email.newBuilder()
-        em.setBody("the body ")
-        em.setSubject("i am subjective")
-        em.setTo("tooey@two.too")
-        em.setFrom("frumpy@fro.om")
-        var email = em.build()
+        var pbMessage = MessageOuterClass.Message.newBuilder()
+//        var pbMessage = MessageOuterClass
+        pbMessage.setBody("the body ")
+        pbMessage.setSubject("i am subjective")
+        pbMessage.setRecipient("tooey@two.too")
+        pbMessage.setSender("frumpy@fro.om")
+        var email = pbMessage.build()
 
         val emailBytes: ByteArray = email.toByteArray()
 

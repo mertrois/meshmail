@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+//option java_outer_classname = "MessageOuterClass";
+
+
+
+// used to announce to clients there's a new message
+// clients will need to know how many fragments exist (so they can start requesting them one at a time)
+// they will want a subject line to display as a placeholder
+// they will want the serverId to start a MessageEntity with shadow=true
+// the shadow object gets tagged on to a protocol control protobuf
+message MessageShadow {
+  string subject = 1;       // needs to have a max length
+  string serverId = 2;      // may need to shorten this
+  string fingerprint = 3;   // may want this to prevent having to send full serverID with each fragment
+  sint32 nFragments = 4;
+
+}

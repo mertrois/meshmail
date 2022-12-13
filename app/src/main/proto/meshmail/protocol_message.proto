@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+
+import "meshmail/protocol_message_type.proto";
+import "meshmail/message_shadow.proto";
+import "meshmail/message_fragment.proto";
+import "meshmail/message_fragment_request.proto";
+import "meshmail/status_message.proto";
+
+// proto message encodes the flow control messaging between relay and clients
+message ProtocolMessage {
+  ProtocolMessageType pmtype = 1;
+  oneof details {
+    MessageShadow messageShadow = 2;
+    MessageFragment messageFragment = 3;
+    MessageFragmentRequest messageFragmentRequest = 4;
+    StatusMessage statusMessage = 5;
+  }
+}
+

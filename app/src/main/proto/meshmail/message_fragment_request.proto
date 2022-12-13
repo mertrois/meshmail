@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+//option java_outer_classname = "MessageOuterClass";
+
+
+message MessageFragmentRequest {
+  sint32 m = 1;
+  sint32 n = 2;
+  string fingerprint = 3;
+}

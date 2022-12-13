@@ -11,16 +11,17 @@ import android.util.Log
 import android.widget.TextView
 
 import app.meshmail.MeshmailApplication.Companion.prefs
+import app.meshmail.android.Parameters
+import app.meshmail.data.protobuf.MessageOuterClass
 
 
-import app.meshmail.data.protobuf.EmailOuterClass
 import com.geeksville.mesh.DataPacket
 import com.geeksville.mesh.MessageStatus
 import com.geeksville.mesh.NodeInfo
 
 
 import app.meshmail.mail.MailSyncService
-
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
 
 
 class MainActivity : AppCompatActivity() {
@@ -65,19 +66,21 @@ class MainActivity : AppCompatActivity() {
                 "com.geeksville.mesh.MESSAGE_STATUS" -> {
                     val extra: MessageStatus = intent.getParcelableExtra("com.geeksville.mesh.Status")!!
                 }
-                else -> {
+                "com.geeksville.mesh.RECEIVED.${Parameters.MESHMAIL_PORT}" -> {
                     val act = intent.action ?: ""
                     Log.d("onReceive", "received an action: $act")
                     try {
                         var data: DataPacket =
                             intent?.getParcelableExtra("com.geeksville.mesh.Payload")!!
-                        var em = EmailOuterClass.Email.parseFrom(data.bytes)
+                        var em = MessageOuterClass.Message.parseFrom(data.bytes)
                         statusText.append(em.toString())
                         statusText.append("\n")
                     } catch(e: Exception) {
                         Log.e("onReceive", "error decoding protobuf. unexpected input.")
                     }
-
+                }
+                else -> {
+                    Log.d("onReceive", "unknown packet type received")
                 }
             }
         }
@@ -86,14 +89,15 @@ class MainActivity : AppCompatActivity() {
     var intentFilter = IntentFilter().apply {
         addAction("com.geeksville.mesh.NODE_CHANGE")
         addAction("com.geeksville.mesh.MESH_CONNECTED")
-        addAction("com.geeksville.mesh.RECEIVED.309")
+        addAction("com.geeksville.mesh.RECEIVED.${Parameters.MESHMAIL_PORT}")
+        addAction("com.geeksville.mesh.MESSAGE_STATUS")
 
     }
 
     fun sendMessage(s: String) {
         val dp = DataPacket(to=DataPacket.ID_BROADCAST,
             s.toByteArray(),
-            dataType=309)
+            dataType= Parameters.MESHMAIL_PORT)
         try {
             meshService?.send(dp)
         } catch(e: Exception) {

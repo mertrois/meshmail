@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+
+
+// a message fragment is going to get tagged into a control message
+// this rides on a protocol control buf and
+message MessageFragment {
+  string fingerprint = 1; // a unique identifier that is shorter than serverId
+  sint32 m = 2; // fragment number
+  sint32 n = 3; // total number of fragments
+  bytes payload = 4; //
+}

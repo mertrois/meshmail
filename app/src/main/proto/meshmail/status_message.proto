@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+
+
+message StatusMessage {
+  sint32 androidBatteryPercent = 1;
+  sint32 radioBatteryPercent = 2;
+  // ...
+}

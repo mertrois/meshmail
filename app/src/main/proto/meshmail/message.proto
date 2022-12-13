@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package meshmail;
+option java_package = "app.meshmail.data.protobuf";
+
+message Message {
+  string serverId = 1;
+  string subject = 2;
+  string body = 3;
+  string recipient = 4;
+  string sender = 5;
+  uint64 receivedDate = 6;
+  string fingerprint = 7;
+}
