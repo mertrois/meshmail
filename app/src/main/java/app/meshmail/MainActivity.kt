@@ -13,6 +13,8 @@ import android.widget.TextView
 import app.meshmail.MeshmailApplication.Companion.prefs
 import app.meshmail.android.Parameters
 import app.meshmail.data.protobuf.MessageOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
 
 
 import com.geeksville.mesh.DataPacket
@@ -72,8 +74,20 @@ class MainActivity : AppCompatActivity() {
                     try {
                         var data: DataPacket =
                             intent?.getParcelableExtra("com.geeksville.mesh.Payload")!!
-                        var em = MessageOuterClass.Message.parseFrom(data.bytes)
-                        statusText.append(em.toString())
+                        var pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.parseFrom(data.bytes)
+                        var resultStr: String = when(pbProtocolMessage.pmtype) {
+                            ProtocolMessageTypeOuterClass.ProtocolMessageType.SHADOW_BROADCAST -> {
+                                var sb = StringBuilder()
+                                sb.appendLine("Received new Message:")
+                                sb.appendLine("Subject: ${pbProtocolMessage.messageShadow.subject}")
+                                sb.appendLine("Fingerprint: ${pbProtocolMessage.messageShadow.fingerprint}")
+                                sb.appendLine("Num fragments: ${pbProtocolMessage.messageShadow.nFragments}")
+                                sb.toString()
+                            } else -> {
+                                "don't know how to parse this yet"
+                            }
+                        }
+                        statusText.append(resultStr)
                         statusText.append("\n")
                     } catch(e: Exception) {
                         Log.e("onReceive", "error decoding protobuf. unexpected input.")

@@ -1,11 +1,8 @@
 package app.meshmail.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
+import androidx.room.*
 import java.util.*
-
+// @Entity(indices = {@Index(value = {"first_name"},unique = true)})
 @Entity(tableName = "messages")
 data class MessageEntity(
 
@@ -36,6 +33,7 @@ data class MessageEntity(
 
     // perhaps a shorter version of serverID, but deterministic. e.g. last 8 bytes of md5
     // mostly to save space & not have to send across full serverID. Maybe MD5 of the concatenated protobuf
+    // TODO: enforce a unique constraint here
     var fingerprint: String = "",
 
     var nFragments: Int? = null,

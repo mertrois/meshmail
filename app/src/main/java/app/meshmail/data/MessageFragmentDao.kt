@@ -9,11 +9,11 @@ interface MessageFragmentDao {
     @Query("SELECT * FROM message_fragments")
     fun getAll(): List<MessageFragmentEntity>
 
-    @Query("SELECT * FROM message_fragments WHERE messageId = :messageId")
-    fun getAllFragmentsOfMessage(messageId: Int): List<MessageFragmentEntity>
+    @Query("SELECT * FROM message_fragments WHERE fingerprint = :fingerprint")
+    fun getAllFragmentsOfMessage(fingerprint: String): List<MessageFragmentEntity>
 
-    @Query("SELECT count(*) FROM message_fragments WHERE messageId = :messageId")
-    fun getNumFragmentsAvailable(messageId: Int): Int
+    @Query("SELECT count(*) FROM message_fragments WHERE fingerprint = :fingerprint")
+    fun getNumFragmentsAvailable(fingerprint: String): Int
 
     @Insert
     fun insert(messageFragmentEntity: MessageFragmentEntity)

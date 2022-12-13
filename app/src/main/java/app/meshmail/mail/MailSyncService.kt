@@ -7,14 +7,23 @@ import android.util.Log
 import android.widget.Toast
 import androidx.room.Room
 import app.meshmail.MeshmailApplication
+import app.meshmail.android.Parameters
 
 
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
+import app.meshmail.data.MessageFragmentEntity
 import app.meshmail.data.protobuf.MessageOuterClass
+import app.meshmail.data.protobuf.MessageShadowOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
 
 import app.meshmail.util.md5
+import app.meshmail.util.toHex
 import com.geeksville.mesh.DataPacket
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
+import org.osgeo.proj4j.parser.Proj4Keyword.b
+import org.osgeo.proj4j.parser.Proj4Keyword.f
 
 
 import java.util.*
@@ -26,7 +35,7 @@ import javax.mail.Folder
 import javax.mail.Message
 import javax.mail.Session
 import javax.mail.search.FlagTerm
-
+import kotlin.math.roundToInt
 
 
 class MailSyncService : Service() {
@@ -78,6 +87,7 @@ class MailSyncService : Service() {
         for (msg in messages) {
             val mid: String = msg.getHeader("Message-ID")[0]
             if(database.messageDao().getByServerId(mid) == null) {
+                //todo: ensure this entire sequence is atomic
                 Log.d(this.javaClass.name, "message not found in db, adding it now")
                 var msgEnt = MessageEntity()
                 msgEnt.subject = msg.subject
@@ -87,18 +97,75 @@ class MailSyncService : Service() {
                 msgEnt.serverId = mid
                 msgEnt.receivedDate = msg.receivedDate
 
-                msgEnt.isShadow = true // as of this moment, it's a shadow b/c the fragments db isn't fully populated.
+                msgEnt.isShadow = false
+                msgEnt.fingerprint = md5(msgEnt.serverId!!).toHex().substring(0,8)
+
+                // now we build the protobuf version of the message
+                // todo: clean this up with a builder to simply copying values over
+                var pbMessage = MessageOuterClass.Message.newBuilder()
+                pbMessage.subject = msgEnt.subject
+                pbMessage.body = msgEnt.body    // TODO: maybe perform zip compression here if needed
+                pbMessage.recipient = msgEnt.recipient
+                pbMessage.sender = msgEnt.sender
+                pbMessage.serverId = msgEnt.serverId
+                //pbMessage.receivedDate = msgEnt.receivedDate // TODO: figure out conversion of date type to include here
+                pbMessage.fingerprint = msgEnt.fingerprint
+
+                // create the protobuf for the message, the raw data will get put into fragments
+                var pbMessage_bytes: ByteArray = pbMessage.build().toByteArray()
+                msgEnt.protoBufSize = pbMessage_bytes.size
+                var nFragments = Math.ceil(pbMessage_bytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
+                msgEnt.nFragments = nFragments
 
 
-                var fingerprint: String = md5(msgEnt.serverId!!).toString()
-                fingerprint = fingerprint.substring(0,8)
+                var pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
+                pbProtocolMessage.pmtype = ProtocolMessageTypeOuterClass.ProtocolMessageType.SHADOW_BROADCAST
+                var pbMessageShadow = MessageShadowOuterClass.MessageShadow.newBuilder()
+                pbMessageShadow.fingerprint = pbMessage.fingerprint
+                pbMessageShadow.subject = pbMessage.subject
+                pbMessageShadow.nFragments = nFragments
+                pbProtocolMessage.messageShadow = pbMessageShadow.build()
+                // this is ready to send over mesh network to announce a new message has come in
+                var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
 
+                // but first, we need to populate the database with the fragments so they're ready to be served
+                // when requested
 
+                // create fragments and put into database
+                for(f in 0 until nFragments) {
+                    try {
+                        var messageFragmentEntity = MessageFragmentEntity()
+                        messageFragmentEntity.fingerprint = pbMessage.fingerprint
+                        messageFragmentEntity.n = msgEnt.nFragments
+                        messageFragmentEntity.m = f
+                        val a = f * Parameters.MAX_MESSAGE_FRAGMENT_SIZE
+                        val b = if(f == nFragments-1) {
+                                    msgEnt.protoBufSize!! // the last one should be the last byte of the full protobuf, not the hypothetical fragment size * n
+                                } else {
+                                    a + Parameters.MAX_MESSAGE_FRAGMENT_SIZE
+                                }
+                        val d = pbMessage_bytes.sliceArray(a until b)
+                        messageFragmentEntity.data = d
+                        database.messageFragmentDao().insert(messageFragmentEntity)
+                    } catch(e: Exception) {
+                        Log.e("MailSyncService","error creating fragment",e)
+                    }
+                }
 
-
-                Log.d(this.javaClass.name, msgEnt.body!!)
-
+                // put whole message in database
                 database.messageDao().insert(msgEnt)
+
+                // aaaaand now announce the message shadow to the mesh
+                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
+                    pbProtocolMessage_bytes,
+                    dataType=Parameters.MESHMAIL_PORT)
+                try {
+                    (application as MeshmailApplication).meshService?.send(dp)
+                } catch(e: Exception) {
+                    Log.e("sendMessage", "Message failed to send", e)
+                }
+
+
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
             }
@@ -108,29 +175,7 @@ class MailSyncService : Service() {
 
 
 
-        // quick testing here
-        val x = 1
-        var pbMessage = MessageOuterClass.Message.newBuilder()
-//        var pbMessage = MessageOuterClass
-        pbMessage.setBody("the body ")
-        pbMessage.setSubject("i am subjective")
-        pbMessage.setRecipient("tooey@two.too")
-        pbMessage.setSender("frumpy@fro.om")
-        var email = pbMessage.build()
 
-        val emailBytes: ByteArray = email.toByteArray()
-
-        //val deserializedEmail = EmailOuterClass.Email.parseFrom(emailBytes)
-
-        val dp = DataPacket(to= DataPacket.ID_BROADCAST,
-            emailBytes,
-            dataType=309)
-        try {
-            (application as MeshmailApplication)?.meshService?.send(dp)
-        } catch(e: Exception) {
-            Log.e("sendMessage", "Message failed to send", e)
-        }
-        
 
     }
 
