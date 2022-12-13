@@ -9,6 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.geeksville.mesh.IMeshService
 import android.util.Log
 import android.widget.TextView
+
+import app.meshmail.MeshmailApplication.Companion.prefs
+
+
 import app.meshmail.data.protobuf.EmailOuterClass
 import com.geeksville.mesh.DataPacket
 import com.geeksville.mesh.MessageStatus
@@ -83,9 +87,7 @@ class MainActivity : AppCompatActivity() {
         addAction("com.geeksville.mesh.NODE_CHANGE")
         addAction("com.geeksville.mesh.MESH_CONNECTED")
         addAction("com.geeksville.mesh.RECEIVED.309")
-        //addAction("com.geeksville.mesh.RECEIVED_OPAQUE")
-        //addAction("com.geeksville.mesh.RECEIVED_DATA")
-        //addAction("com.geeksville.mesh.MESSAGE_STATUS_CHANGED")
+
     }
 
     fun sendMessage(s: String) {
@@ -103,22 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val sharedPreferenceContents = sharedPreferences.all
-
-        if(sharedPreferenceContents["APP_MODE"] == null) {
-            val editor = sharedPreferences.edit()
-            editor.putString("APP_MODE", "MODE_CLIENT")
-            editor.apply()
-        }
-
-        val appMode = sharedPreferenceContents["APP_MODE"]
-
-//        var preferences: SharedPreferences? = PreferenceManager.getDefaultSharedPreferences(this)
-//        var editor: SharedPreferences.Editor? = preferences?.edit()
-//
-//        editor?.putString("APP_MODE", "MODE_CLIENT")
-//        editor?.apply()
+        val appMode = prefs?.getString("APP_MODE","MODE_CLIENT")
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
