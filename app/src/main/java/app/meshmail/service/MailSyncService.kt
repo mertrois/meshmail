@@ -36,7 +36,7 @@ import kotlin.math.roundToInt
 
 
 class MailSyncService : Service() {
-    private val syncInterval: Long = 60 // sync interval in seconds
+
     private var scheduledExecutor: ScheduledExecutorService? = null
 
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
@@ -51,7 +51,7 @@ class MailSyncService : Service() {
         scheduledExecutor!!.scheduleWithFixedDelay(
             { syncMail() },
             0,
-            syncInterval,
+            Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
     }
