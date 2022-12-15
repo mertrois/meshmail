@@ -39,6 +39,8 @@ class MailSyncService : Service() {
     private val syncInterval: Long = 60 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
 
+    private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
+
     private val database: MeshmailDatabase by lazy {
         (application as MeshmailApplication).database
     }
@@ -147,16 +149,17 @@ class MailSyncService : Service() {
 
                 // put whole message in database
                 database.messageDao().insert(msgEnt)
+                meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+//                // aaaaand now announce the message shadow to the mesh
+//                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
+//                    pbProtocolMessage_bytes,
+//                    dataType=Parameters.MESHMAIL_PORT)
+//                try {
+//                    (application as MeshmailApplication).meshService?.send(dp)
+//                } catch(e: Exception) {
+//                    Log.e("sendMessage", "Message failed to send", e)
+//                }
 
-                // aaaaand now announce the message shadow to the mesh
-                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-                    pbProtocolMessage_bytes,
-                    dataType=Parameters.MESHMAIL_PORT)
-                try {
-                    (application as MeshmailApplication).meshService?.send(dp)
-                } catch(e: Exception) {
-                    Log.e("sendMessage", "Message failed to send", e)
-                }
 
 
             } else {
@@ -165,11 +168,6 @@ class MailSyncService : Service() {
             // should only clear this flag if it's in the database. adding may have failed. check for exceptions
             // msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
         }
-
-
-
-
-
     }
 
     private fun getMessages(): Array<Message>? {

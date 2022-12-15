@@ -22,10 +22,8 @@ import java.util.concurrent.TimeUnit
 
 
 class MessageFragmentSyncService : Service() {
-    // todo put the syncInterval in Parameters file
-    private val syncInterval: Long = 60 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
-
+    private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
     private val database: MeshmailDatabase by lazy {
         (application as MeshmailApplication).database
     }
@@ -37,7 +35,7 @@ class MessageFragmentSyncService : Service() {
         scheduledExecutor!!.scheduleWithFixedDelay(
             { runSync() },
             0,
-            syncInterval,
+            Parameters.FRAGMENT_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
     }
@@ -79,14 +77,15 @@ class MessageFragmentSyncService : Service() {
                 pbProtocolMessage.messageFragmentRequest = pbMessageFragmentRequest.build()
                 var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
 
-                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-                    pbProtocolMessage_bytes,
-                    dataType= Parameters.MESHMAIL_PORT)
-                try {
-                    (application as MeshmailApplication).meshService?.send(dp)
-                } catch(e: Exception) {
-                    Log.e("sendMessage", "Message failed to send", e)
-                }
+                meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+//                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
+//                    pbProtocolMessage_bytes,
+//                    dataType= Parameters.MESHMAIL_PORT)
+//                try {
+//                    (application as MeshmailApplication).meshService?.send(dp)
+//                } catch(e: Exception) {
+//                    Log.e("sendMessage", "Message failed to send", e)
+//                }
             }
 
         }

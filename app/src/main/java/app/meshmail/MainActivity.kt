@@ -30,6 +30,7 @@ import com.geeksville.mesh.NodeInfo
 
 
 import app.meshmail.service.MailSyncService
+import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
 import com.google.protobuf.kotlin.toByteString
 
@@ -40,11 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var inputText: TextView
 
-    private var meshService: IMeshService? = null
-
-    private val database: MeshmailDatabase by lazy {
-        (application as MeshmailApplication).database
-    }
+    private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
+    private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
 
     private val serviceIntent = Intent().apply {
         setClassName(
@@ -55,15 +53,12 @@ class MainActivity : AppCompatActivity() {
 
     private val serviceConnection = object: ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            meshService = IMeshService.Stub.asInterface(service)
-            (getApplication() as MeshmailApplication).meshService = meshService // hacky, just for now
-            // this@MainActivity.meshService = ...
+            meshServiceManager.serviceConnected(IMeshService.Stub.asInterface(service))
             Log.d(MainActivity::class.java.simpleName, "service connected")
         }
         override fun onServiceDisconnected(name: ComponentName) {
             Log.d(MainActivity::class.java.simpleName, "service disconnected")
-            meshService = null
-            (getApplication() as MeshmailApplication).meshService = null // hacky, change later.
+            meshServiceManager.serviceDisconnected()
         }
     }
 
@@ -145,14 +140,15 @@ class MainActivity : AppCompatActivity() {
                                 pbProtocolMessage.messageFragment = pbMessageFragment.build()
                                 var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
                                 // send it
-                                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-                                    pbProtocolMessage_bytes,
-                                    dataType= Parameters.MESHMAIL_PORT)
-                                try {
-                                    (application as MeshmailApplication).meshService?.send(dp)
-                                } catch(e: Exception) {
-                                    Log.e("sendMessage", "Message failed to send", e)
-                                }
+                                meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+//                                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
+//                                    pbProtocolMessage_bytes,
+//                                    dataType= Parameters.MESHMAIL_PORT)
+//                                try {
+//                                    (application as MeshmailApplication).meshService?.send(dp)
+//                                } catch(e: Exception) {
+//                                    Log.e("sendMessage", "Message failed to send", e)
+//                                }
                                 // debugging
                                 pbMessageFragmentRequest.let { req ->
                                     /* just for debugging */
@@ -239,16 +235,17 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun sendMessage(s: String) {
-        val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-            s.toByteArray(),
-            dataType= Parameters.MESHMAIL_PORT)
-        try {
-            meshService?.send(dp)
-        } catch(e: Exception) {
-            Log.e("sendMessage", "Message failed to send", e)
-        }
-    }
+    // this was an early test function; can be removed
+//    fun sendMessage(s: String) {
+//        val dp = DataPacket(to=DataPacket.ID_BROADCAST,
+//            s.toByteArray(),
+//            dataType= Parameters.MESHMAIL_PORT)
+//        try {
+//            meshServiceManager.send(dp)
+//        } catch(e: Exception) {
+//            Log.e("sendMessage", "Message failed to send", e)
+//        }
+//    }
 
 
 
@@ -265,8 +262,8 @@ class MainActivity : AppCompatActivity() {
         button = findViewById(R.id.button)
         button.setOnClickListener { v ->
             Log.d(MainActivity::class.java.simpleName, "button clicked")
-            sendMessage(inputText.text.toString())
-            inputText.text = ""
+            //sendMessage(inputText.text.toString())
+            //inputText.text = ""
         }
 
         // todo: remove; only for dev. Clean up before running.
