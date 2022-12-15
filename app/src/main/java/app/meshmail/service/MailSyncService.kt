@@ -1,4 +1,4 @@
-package app.meshmail.mail
+package app.meshmail.service
 
 import android.app.Service
 import android.content.Intent
@@ -21,9 +21,6 @@ import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
 import com.geeksville.mesh.DataPacket
-import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
-import org.osgeo.proj4j.parser.Proj4Keyword.b
-import org.osgeo.proj4j.parser.Proj4Keyword.f
 
 
 import java.util.*
@@ -39,7 +36,7 @@ import kotlin.math.roundToInt
 
 
 class MailSyncService : Service() {
-    private val syncInterval: Long = 60 // sync interval in seconds
+    private val syncInterval: Long = 10 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
 
     val database: MeshmailDatabase by lazy {

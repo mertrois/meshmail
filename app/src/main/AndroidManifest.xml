@@ -27,9 +27,8 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-        <activity android:name="com.facebook.flipper.android.diagnostics.FlipperDiagnosticActivity"
-            android:exported="true"/>
-        <service android:name="app.meshmail.mail.MailSyncService" />
+        <service android:name="app.meshmail.service.MailSyncService" />
+        <service android:name="app.meshmail.service.MessageFragmentSyncService" />
 
     </application>
     <queries>

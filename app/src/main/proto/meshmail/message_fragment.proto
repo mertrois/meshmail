@@ -9,6 +9,6 @@ option java_package = "app.meshmail.data.protobuf";
 message MessageFragment {
   string fingerprint = 1; // a unique identifier that is shorter than serverId
   sint32 m = 2; // fragment number
-  sint32 n = 3; // total number of fragments
+  sint32 n = 3; // total number of fragments // this is redundant, both sides know this value.
   bytes payload = 4; //
 }

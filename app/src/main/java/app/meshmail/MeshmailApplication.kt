@@ -24,6 +24,7 @@ class MeshmailApplication : Application() {
         super.onCreate()
         prefs = PrefsManager(this)
 
+
 //        SoLoader.init(this, false)
 //
 //        if (BuildConfig.DEBUG && FlipperUtils.shouldEnableFlipper(this)) {

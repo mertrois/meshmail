@@ -7,6 +7,5 @@ option java_package = "app.meshmail.data.protobuf";
 
 message MessageFragmentRequest {
   sint32 m = 1;
-  sint32 n = 2;
   string fingerprint = 3;
 }

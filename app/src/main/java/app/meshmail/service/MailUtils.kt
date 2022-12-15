@@ -1,4 +1,4 @@
-package app.meshmail.mail
+package app.meshmail.service
 
 import javax.mail.Message
 import javax.mail.internet.MimeMultipart
