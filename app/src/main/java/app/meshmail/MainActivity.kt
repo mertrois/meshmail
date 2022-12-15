@@ -42,13 +42,8 @@ class MainActivity : AppCompatActivity() {
 
     private var meshService: IMeshService? = null
 
-    val database: MeshmailDatabase by lazy {
-        Room.databaseBuilder(
-            this,
-            MeshmailDatabase::class.java,
-            "meshmail_database"
-        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
-        // todo: restructure to remove allowmainthreadqueries ... only avoiding premature optimization in development
+    private val database: MeshmailDatabase by lazy {
+        (application as MeshmailApplication).database
     }
 
     private val serviceIntent = Intent().apply {
@@ -119,7 +114,7 @@ class MainActivity : AppCompatActivity() {
                                 pbMessageShadow.let { ms ->
                                     /* just for debugging */
                                     var sb = StringBuilder()
-                                    sb.appendLine("Received new Message:")
+                                    sb.appendLine("Received new Shadow:")
                                     sb.appendLine("Subject: ${ms.subject}")
                                     sb.appendLine("Fingerprint: ${ms.fingerprint}")
                                     sb.appendLine("Num fragments: ${ms.nFragments}")
@@ -224,6 +219,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         statusText.append(resultStr)
                         statusText.append("\n")
+                        Log.d("MainActivity", resultStr)
                     } catch(e: Exception) {
                         Log.e("onReceive", "error decoding protobuf. unexpected input.")
                     }

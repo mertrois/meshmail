@@ -4,7 +4,9 @@ import android.app.Application
 import android.content.SharedPreferences
 import android.content.SharedPreferences.Editor
 import android.preference.PreferenceManager
+import androidx.room.Room
 import app.meshmail.android.PrefsManager
+import app.meshmail.data.MeshmailDatabase
 //import com.facebook.flipper.android.AndroidFlipperClient
 //import com.facebook.flipper.android.utils.FlipperUtils
 //import com.facebook.flipper.plugins.inspector.DescriptorMapping
@@ -18,6 +20,15 @@ class MeshmailApplication : Application() {
         var prefs: PrefsManager? = null
     }
     var meshService: IMeshService? = null
+
+    // todo: restructure to remove allowmainthreadqueries ... only avoiding premature optimization in development
+    val database: MeshmailDatabase by lazy {
+        Room.databaseBuilder(
+            this,
+            MeshmailDatabase::class.java,
+            "meshmail_database"
+        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
+    }
 
 
     override fun onCreate() {

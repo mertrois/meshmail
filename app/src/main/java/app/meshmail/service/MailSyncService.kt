@@ -36,15 +36,11 @@ import kotlin.math.roundToInt
 
 
 class MailSyncService : Service() {
-    private val syncInterval: Long = 10 // sync interval in seconds
+    private val syncInterval: Long = 60 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
 
-    val database: MeshmailDatabase by lazy {
-        Room.databaseBuilder(
-            this,
-            MeshmailDatabase::class.java,
-            "meshmail_database"
-        ).fallbackToDestructiveMigration().build()
+    private val database: MeshmailDatabase by lazy {
+        (application as MeshmailApplication).database
     }
 
     override fun onCreate() {
@@ -167,7 +163,7 @@ class MailSyncService : Service() {
                 Log.d(this.javaClass.name, "message already exists in database")
             }
             // should only clear this flag if it's in the database. adding may have failed. check for exceptions
-            msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
+            // msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
         }
 
 

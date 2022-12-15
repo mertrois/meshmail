@@ -23,19 +23,16 @@ import java.util.concurrent.TimeUnit
 
 class MessageFragmentSyncService : Service() {
     // todo put the syncInterval in Parameters file
-    private val syncInterval: Long = 30 // sync interval in seconds
+    private val syncInterval: Long = 60 // sync interval in seconds
     private var scheduledExecutor: ScheduledExecutorService? = null
 
-    val database: MeshmailDatabase by lazy {
-        Room.databaseBuilder(
-            this,
-            MeshmailDatabase::class.java,
-            "meshmail_database"
-        ).fallbackToDestructiveMigration().build()
+    private val database: MeshmailDatabase by lazy {
+        (application as MeshmailApplication).database
     }
 
     override fun onCreate() {
         super.onCreate()
+
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
         scheduledExecutor!!.scheduleWithFixedDelay(
             { runSync() },
