@@ -177,7 +177,7 @@ data class NodeInfo(
     val isOnline: Boolean
         get() {
             val now = System.currentTimeMillis() / 1000
-            // FIXME - use correct timeout from the device settings
+
             val timeout =
                 15 * 60 // Don't set this timeout too tight, or otherwise we will stop sending GPS helper positions to our device
             return (now - lastHeard <= timeout) || lastHeard == 0

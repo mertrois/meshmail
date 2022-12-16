@@ -152,17 +152,6 @@ class MailSyncService : Service() {
                 // put whole message in database
                 database.messageDao().insert(msgEnt)
                 meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
-//                // aaaaand now announce the message shadow to the mesh
-//                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-//                    pbProtocolMessage_bytes,
-//                    dataType=Parameters.MESHMAIL_PORT)
-//                try {
-//                    (application as MeshmailApplication).meshService?.send(dp)
-//                } catch(e: Exception) {
-//                    Log.e("sendMessage", "Message failed to send", e)
-//                }
-
-
 
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
@@ -197,7 +186,7 @@ class MailSyncService : Service() {
             inbox.open(Folder.READ_WRITE)
 
             //inbox.getMessages()
-            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))
+            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), true))  // set this to false... true for debugging
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
             null
