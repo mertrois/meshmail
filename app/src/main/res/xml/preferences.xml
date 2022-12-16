@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="Meshmail">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="relay_mode"
+            android:title="Relay mode" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="IMAP Server">
+        <EditTextPreference
+            android:defaultValue="imap.domain.com"
+            android:key="imap_server"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Host" />
+        <EditTextPreference
+            android:defaultValue="993"
+            android:key="imap_server_port"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Port" />
+        <EditTextPreference
+            android:key="imap_username"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Username" />
+        <EditTextPreference
+            android:key="imap_password"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Password" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="SMTP Server">
+        <EditTextPreference
+            android:defaultValue="smtp.domain.com"
+            android:key="smtp_server"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Host" />
+        <EditTextPreference
+            android:defaultValue="993"
+            android:key="smtp_server_port"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Port" />
+        <EditTextPreference
+            android:key="smtp_username"
+            android:selectAllOnFocus="true"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            android:title="Username" />
+        <EditTextPreference
+            android:key="smtp_password"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Password" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

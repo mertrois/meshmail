@@ -3,11 +3,16 @@ package app.meshmail
 import android.content.*
 import android.os.Bundle
 import android.os.IBinder
+import android.text.TextUtils.replace
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.geeksville.mesh.IMeshService
 import android.util.Log
 import android.widget.TextView
+import androidx.preference.EditTextPreference
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
 import app.meshmail.MeshmailApplication.Companion.prefs
 import app.meshmail.android.Parameters
 import app.meshmail.data.MeshmailDatabase
@@ -26,12 +31,14 @@ import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
 import com.google.protobuf.kotlin.toByteString
+import org.osgeo.proj4j.parser.Proj4Keyword.a
+import app.meshmail.ui.PreferenceFragment
 
 
-class MainActivity : AppCompatActivity() {
-    private lateinit var button: Button
-    private lateinit var statusText: TextView
-    private lateinit var inputText: TextView
+class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+
+    //private lateinit var statusText: TextView
+
 
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
     private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
@@ -197,11 +204,11 @@ class MainActivity : AppCompatActivity() {
                                 "unknown protocol message. don't know how to parse this yet"
                             }
                         }
-                        statusText.append(resultStr)
-                        statusText.append("\n")
+//                        statusText.append(resultStr)
+//                        statusText.append("\n")
                         Log.d("MainActivity", resultStr)
                     } catch(e: Exception) {
-                        Log.e("onReceive", "error decoding protobuf. unexpected input.")
+                        Log.e("onReceive", "error decoding protobuf. unexpected input.", e)
                     }
                 }
                 else -> {
@@ -221,26 +228,20 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
-        val appMode = prefs?.getString("APP_MODE","MODE_CLIENT")
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusText = findViewById(R.id.statusText)
-        inputText = findViewById(R.id.chatTextToSend)
+        val relayMode = prefs?.getBoolean("relay_mode", false)
 
-        button = findViewById(R.id.button)
-        button.setOnClickListener {
-            Log.d(MainActivity::class.java.simpleName, "button clicked")
-            //sendMessage(inputText.text.toString())
-            //inputText.text = ""
-        }
+        // for now, load prefs frag to mainactivity right away
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.settings, PreferenceFragment())
+            .commit()
 
         // todo: remove; only for dev. Clean up before running.
         database.messageDao().deleteAll()
         database.messageFragmentDao().deleteAll()
-
 
         try {
             applicationContext.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
@@ -252,7 +253,7 @@ class MainActivity : AppCompatActivity() {
 
         registerReceiver(receiver, intentFilter)
 
-        if(appMode == "MODE_RELAY")
+        if(relayMode!!)
             Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
 
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
@@ -264,6 +265,38 @@ class MainActivity : AppCompatActivity() {
         unbindService(serviceConnection)
 
 
+    }
+
+
+    /*
+    Preference related stuff
+     */
+
+//    override fun onSaveInstanceState(outState: Bundle) {
+//        super.onSaveInstanceState(outState)
+//    }
+
+
+    override fun onPreferenceStartFragment(
+        caller: PreferenceFragmentCompat,
+        pref: Preference
+    ): Boolean {
+        // Instantiate the new Fragment
+        val args = pref.extras
+        val fragment = supportFragmentManager.fragmentFactory.instantiate(
+            classLoader,
+            pref.fragment ?: return false
+        ).apply {
+            arguments = args
+            setTargetFragment(caller, 0)
+        }
+        // Replace the existing Fragment with the new Fragment
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.settings, fragment)
+            .addToBackStack(null)
+            .commit()
+        title = pref.title
+        return true
     }
 
 }

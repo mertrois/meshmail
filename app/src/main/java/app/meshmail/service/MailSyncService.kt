@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.room.Room
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
+import app.meshmail.MeshmailApplication.Companion.prefs
+import app.meshmail.android.PrefsManager
 
 
 import app.meshmail.data.MeshmailDatabase
@@ -171,25 +173,25 @@ class MailSyncService : Service() {
     }
 
     private fun getMessages(): Array<Message>? {
-        val username = "test@meshmail.app"
-        val password = "4xxr7hdT"
+        val imapUsername = prefs?.getString("imap_username","")
+        val imapPassword = prefs?.getString("imap_password","")
 
         val properties = Properties().apply {
             put("mail.imap.ssl.enable", "true")
             put("mail.smtp.ssl.enable", "true")
             put("mail.imap.starttls.enable", "true")
             put("mail.smtp.starttls.enable", "true")
-            put("mail.imaps.host", "imap.dreamhost.com")
-            put("mail.smtps.host", "smtp.dreamhost.com")
-            put("mail.imaps.port", 993)
-            put("mail.smtps.port", 465)
+            put("mail.imaps.host", prefs?.getString("imap_server",""))
+            put("mail.smtps.host", prefs?.getString("smtp_server",""))
+            put("mail.imaps.port", prefs?.getString("imap_server_port","0")?.toInt())
+            put("mail.smtps.port", prefs?.getString("smtp_server_port","0")?.toInt())
         }
 
         val session = Session.getInstance(properties)
         val store = session.getStore("imaps")
 
         return try {
-            store.connect(username, password)
+            store.connect(imapUsername, imapPassword)
 
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)

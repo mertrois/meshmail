@@ -1,18 +1,12 @@
 package app.meshmail
 
 import android.app.Application
-import android.content.SharedPreferences
-import android.content.SharedPreferences.Editor
-import android.preference.PreferenceManager
+
 import androidx.room.Room
 import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.service.MeshServiceManager
-//import com.facebook.flipper.android.AndroidFlipperClient
-//import com.facebook.flipper.android.utils.FlipperUtils
-//import com.facebook.flipper.plugins.inspector.DescriptorMapping
-//import com.facebook.flipper.plugins.inspector.InspectorFlipperPlugin
-//import com.facebook.soloader.SoLoader
+
 import com.geeksville.mesh.IMeshService
 
 class MeshmailApplication : Application() {

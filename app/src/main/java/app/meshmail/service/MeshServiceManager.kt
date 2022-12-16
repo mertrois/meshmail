@@ -31,7 +31,7 @@ class MeshServiceManager {
 
         val dp = DataPacket(to, data, dataType)
         packetQ.add(dp)
-        send()
+        send() // hack for testing; will make this async shortly.
     }
 
 }
