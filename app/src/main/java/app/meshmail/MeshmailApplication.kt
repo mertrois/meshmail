@@ -15,7 +15,7 @@ class MeshmailApplication : Application() {
         var prefs: PrefsManager? = null
     }
     var meshService: IMeshService? = null
-    val meshServiceManager: MeshServiceManager = MeshServiceManager()
+    val meshServiceManager: MeshServiceManager = MeshServiceManager(this)
 
     // todo: restructure to remove allowmainthreadqueries ... only avoiding premature optimization in development
     val database: MeshmailDatabase by lazy {

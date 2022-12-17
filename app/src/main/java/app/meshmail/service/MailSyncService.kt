@@ -151,6 +151,7 @@ class MailSyncService : Service() {
 
                 // put whole message in database
                 database.messageDao().insert(msgEnt)
+                // broadcast the message shadow
                 meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
 
             } else {
@@ -185,8 +186,8 @@ class MailSyncService : Service() {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
 
-            //inbox.getMessages()
-            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), true))  // set this to false... true for debugging
+            inbox.getMessages() // simpler method, gets everything even those that have been seen; use for debugging.
+            // inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
             null

@@ -68,7 +68,7 @@ class MessageFragmentSyncService : Service() {
             // send a fragment request for the first missing one
             if(neededFragments.size > 0) {
                 // this should always run outside some weird race condition
-                // todo: factor this into a class that handles sending messages from a queue with a small delay set by parameter
+                // todo: enqueue more than just the first one...
                 var pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
                 pbProtocolMessage.pmtype = ProtocolMessageTypeOuterClass.ProtocolMessageType.FRAGMENT_REQUEST
                 var pbMessageFragmentRequest = MessageFragmentRequestOuterClass.MessageFragmentRequest.newBuilder()
@@ -78,14 +78,6 @@ class MessageFragmentSyncService : Service() {
                 var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
 
                 meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
-//                val dp = DataPacket(to=DataPacket.ID_BROADCAST,
-//                    pbProtocolMessage_bytes,
-//                    dataType= Parameters.MESHMAIL_PORT)
-//                try {
-//                    (application as MeshmailApplication).meshService?.send(dp)
-//                } catch(e: Exception) {
-//                    Log.e("sendMessage", "Message failed to send", e)
-//                }
             }
 
         }

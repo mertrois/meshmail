@@ -12,6 +12,8 @@ import app.meshmail.data.MessageFragmentEntity
 import app.meshmail.data.protobuf.*
 import com.geeksville.mesh.DataPacket
 import com.google.protobuf.kotlin.toByteString
+import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
+import app.meshmail.data.protobuf.MessageFragmentOuterClass.MessageFragment
 
 class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private val database: MeshmailDatabase by lazy { (context as MeshmailApplication).database }
@@ -35,131 +37,22 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 try {
                     val data: DataPacket = intent.getParcelableExtra("com.geeksville.mesh.Payload")!!
                     val pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.parseFrom(data.bytes)
+
                     val resultStr: String = when(pbProtocolMessage.pmtype) {
 
-                        ProtocolMessageTypeOuterClass.ProtocolMessageType.SHADOW_BROADCAST -> {
-                            val pbMessageShadow: MessageShadowOuterClass.MessageShadow = pbProtocolMessage.messageShadow
+                        ProtocolMessageType.SHADOW_BROADCAST ->
+                            handleShadowBroadcast(pbProtocolMessage)
 
+                        ProtocolMessageType.FRAGMENT_REQUEST ->
+                            handleFragmentRequest(pbProtocolMessage)
 
-                            // if client, see if there is a message in the DB with the fingerprint
-                            // if not, add this message with shadow = true, filling in as much as we know
-                            // does it really even matter if it's the client? wouldn't it apply to any device?
-                            // since fingerprint should be reasonably unique?
-                            if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
-                                val newMessage = MessageEntity()
-                                newMessage.fingerprint = pbMessageShadow.fingerprint
-                                newMessage.nFragments = pbMessageShadow.nFragments
-                                newMessage.subject = pbMessageShadow.subject
-                                newMessage.isShadow = true
-                                database.messageDao().insert(newMessage)
-                            }
+                        ProtocolMessageType.FRAGMENT_BROADCAST ->
+                            handleFragmentBroadcast(pbProtocolMessage)
 
-
-                            // we want to have a service running on the client that gets notified when new messages
-                            // are created... it can see which fragments are missing, put fragment requests in a queue
-                            // and start sending.
-                            pbMessageShadow.let { ms ->
-                                /* just for debugging */
-                                val sb = StringBuilder()
-                                sb.appendLine("Received new Shadow:")
-                                sb.appendLine("Subject: ${ms.subject}")
-                                sb.appendLine("Fingerprint: ${ms.fingerprint}")
-                                sb.appendLine("Num fragments: ${ms.nFragments}")
-                                sb.toString()
-                            }
-
-
-
-
-
-                            /*
-                            Handle a fragment request:
-                            send a fragment in response
-                             */
-                        } ProtocolMessageTypeOuterClass.ProtocolMessageType.FRAGMENT_REQUEST -> {
-                            val pbMessageFragmentRequest: MessageFragmentRequestOuterClass.MessageFragmentRequest = pbProtocolMessage.messageFragmentRequest
-                            // look up this message fragment in local db
-                            val messageFragmentEntity: MessageFragmentEntity =
-                                database.messageFragmentDao().getFragmentOfMessage(pbMessageFragmentRequest.m, pbMessageFragmentRequest.fingerprint)
-                            // create a protobuf and populate it
-                            val pbProtocolMessageOut = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
-                            pbProtocolMessageOut.pmtype = ProtocolMessageTypeOuterClass.ProtocolMessageType.FRAGMENT_BROADCAST
-                            val pbMessageFragment = MessageFragmentOuterClass.MessageFragment.newBuilder()
-                            pbMessageFragment.fingerprint = messageFragmentEntity.fingerprint
-                            pbMessageFragment.m           = messageFragmentEntity.m!!
-                            pbMessageFragment.n           = messageFragmentEntity.n!!
-                            pbMessageFragment.payload     = messageFragmentEntity.data?.toByteString()
-                            pbProtocolMessageOut.messageFragment = pbMessageFragment.build()
-                            val pbProtocolMessageBytes: ByteArray = pbProtocolMessageOut.build().toByteArray()
-                            // send it
-                            meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
-
-                            // debugging
-                            pbMessageFragmentRequest.let { req ->
-                                /* just for debugging */
-                                val sb = StringBuilder()
-                                sb.appendLine("Received new Fragment Request:")
-                                sb.appendLine("Fingerprint: ${req.fingerprint}")
-                                sb.appendLine("Frag num: ${req.m}")
-                                sb.toString()
-                            }
-
-                            /*
-                                Handle a received fragment:
-                                add to database, see if we now have all the pieces to make a message and upgrade the message
-                             */
-                        } ProtocolMessageTypeOuterClass.ProtocolMessageType.FRAGMENT_BROADCAST -> {
-                            var result: String
-                            val pbMessageFragment: MessageFragmentOuterClass.MessageFragment = pbProtocolMessage.messageFragment
-                            // insert this message fragment into the database
-                            val messageFragmentEntity = MessageFragmentEntity()
-                            messageFragmentEntity.data = pbMessageFragment.payload.toByteArray()
-                            messageFragmentEntity.m = pbMessageFragment.m
-                            messageFragmentEntity.n = pbMessageFragment.n
-                            messageFragmentEntity.fingerprint = pbMessageFragment.fingerprint
-                            database.messageFragmentDao().insert(messageFragmentEntity)
-                            // now, does this give us a complete set of fragments?
-                            result = "Fragment ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint} received."
-                            if(database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint) == pbMessageFragment.n) {
-                                // is there as message object, and is it a shadow?
-                                val message: MessageEntity = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)!!
-                                if(message != null && message.isShadow!!) {
-                                    val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
-                                    //fragments.sortedBy({ f -> f.m }) // this might not be necessary, already requested sorted from database.
-                                    //val buffer = ArrayList<Byte>()
-                                    var buffer = ByteArray(0)
-                                    for(fragment in fragments) {
-                                        buffer += fragment.data!!
-                                    }
-                                    // now we can conjure a protobuf message from the concatenated byte arrays
-                                    val pbMessage = MessageOuterClass.Message.parseFrom(buffer)
-                                    // update our Message in the DB
-                                    message.body = pbMessage.body
-                                    message.serverId = pbMessage.serverId
-                                    message.recipient = pbMessage.recipient
-                                    message.sender = pbMessage.sender
-                                    //message.receivedDate = pbMessage.receivedDate // todo: figure out conversion
-                                    message.isShadow = false // woohoo we are a fully-fledged message now
-                                    database.messageDao().update(message)
-                                    result = message.let { msg ->
-                                        val sb = StringBuilder()
-                                        sb.appendLine("Received new Message: ${msg.fingerprint}")
-                                        sb.appendLine("subject: ${msg.subject}")
-                                        sb.appendLine("body: ${msg.body}")
-                                        sb.toString()
-                                    }
-                                }
-                            }
-
-                            // var fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(pbMessageFragment.fingerprint)
-                            // debugging output
-                            result
-                        } else -> {
+                        else ->
                             "unknown protocol message. don't know how to parse this yet"
-                        }
+
                     }
-//                        statusText.append(resultStr)
-//                        statusText.append("\n")
                     Log.d("MainActivity", resultStr)
                 } catch(e: Exception) {
                     Log.e("onReceive", "error decoding protobuf. unexpected input.", e)
@@ -169,5 +62,120 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 Log.d("onReceive", "unknown packet type received")
             }
         }
+    }
+
+
+
+    private fun handleShadowBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage): String {
+        val pbMessageShadow: MessageShadowOuterClass.MessageShadow = pbProtocolMessage.messageShadow
+
+
+        // if client, see if there is a message in the DB with the fingerprint
+        // if not, add this message with shadow = true, filling in as much as we know
+        // does it really even matter if it's the client? wouldn't it apply to any device?
+        // since fingerprint should be reasonably unique?
+        if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
+            val newMessage = MessageEntity()
+            newMessage.fingerprint = pbMessageShadow.fingerprint
+            newMessage.nFragments = pbMessageShadow.nFragments
+            newMessage.subject = pbMessageShadow.subject
+            newMessage.isShadow = true
+            database.messageDao().insert(newMessage)
+        }
+
+        // we want to have a service running on the client that gets notified when new messages
+        // are created... it can see which fragments are missing, put fragment requests in a queue
+        // and start sending.
+        return pbMessageShadow.let { ms ->
+            /* just for debugging */
+            val sb = StringBuilder()
+            sb.appendLine("Received new Shadow:")
+            sb.appendLine("Subject: ${ms.subject}")
+            sb.appendLine("Fingerprint: ${ms.fingerprint}")
+            sb.appendLine("Num fragments: ${ms.nFragments}")
+            sb.toString()
+        }
+    }
+
+    private fun handleFragmentRequest(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage): String {
+        val pbMessageFragmentRequest: MessageFragmentRequestOuterClass.MessageFragmentRequest = pbProtocolMessage.messageFragmentRequest
+        // look up this message fragment in local db
+        val messageFragmentEntity: MessageFragmentEntity =
+            database.messageFragmentDao().getFragmentOfMessage(pbMessageFragmentRequest.m, pbMessageFragmentRequest.fingerprint)
+        // create a protobuf and populate it
+        val pbProtocolMessageOut = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
+        pbProtocolMessageOut.pmtype = ProtocolMessageType.FRAGMENT_BROADCAST
+        val pbMessageFragment = MessageFragment.newBuilder()
+        pbMessageFragment.fingerprint = messageFragmentEntity.fingerprint
+        pbMessageFragment.m           = messageFragmentEntity.m!!
+        pbMessageFragment.n           = messageFragmentEntity.n!!
+        pbMessageFragment.payload     = messageFragmentEntity.data?.toByteString()
+        pbProtocolMessageOut.messageFragment = pbMessageFragment.build()
+        val pbProtocolMessageBytes: ByteArray = pbProtocolMessageOut.build().toByteArray()
+        // send it
+        meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
+
+        // debugging
+        return pbMessageFragmentRequest.let { req ->
+            /* just for debugging */
+            val sb = StringBuilder()
+            sb.appendLine("Received new Fragment Request:")
+            sb.appendLine("Fingerprint: ${req.fingerprint}")
+            sb.appendLine("Frag num: ${req.m}")
+            sb.toString()
+        }
+    }
+
+    private fun handleFragmentBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage): String {
+        var result: String // for debugging
+        val pbMessageFragment: MessageFragment = pbProtocolMessage.messageFragment
+        // insert this message fragment into the database
+        if(database.messageFragmentDao().getExactFragment(pbMessageFragment.fingerprint, pbMessageFragment.m) != null) {
+            return "duplicate fragment received: ${pbMessageFragment.m} of ${pbMessageFragment.fingerprint}. Ignoring"
+        }
+        val messageFragmentEntity = MessageFragmentEntity()
+        messageFragmentEntity.data = pbMessageFragment.payload.toByteArray()
+        messageFragmentEntity.m = pbMessageFragment.m
+        messageFragmentEntity.n = pbMessageFragment.n
+        messageFragmentEntity.fingerprint = pbMessageFragment.fingerprint
+        database.messageFragmentDao().insert(messageFragmentEntity)
+
+        // now, does this give us a complete set of fragments?
+        result = "Fragment ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint} received."
+
+        if(database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint) == pbMessageFragment.n) {
+            // is there as message object, and is it a shadow?
+            val message: MessageEntity = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)!!
+            if(message != null && message.isShadow!!) {
+                val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
+                //fragments.sortedBy({ f -> f.m }) // this might not be necessary, already requested sorted from database.
+                //val buffer = ArrayList<Byte>()
+                var buffer = ByteArray(0)
+                for(fragment in fragments) {
+                    buffer += fragment.data!!
+                }
+                // now we can conjure a protobuf message from the concatenated byte arrays
+                val pbMessage = MessageOuterClass.Message.parseFrom(buffer)
+                // update our Message in the DB
+                message.body = pbMessage.body
+                message.serverId = pbMessage.serverId
+                message.recipient = pbMessage.recipient
+                message.sender = pbMessage.sender
+                //message.receivedDate = pbMessage.receivedDate // todo: figure out conversion
+                message.isShadow = false // woohoo we are a fully-fledged message now
+                database.messageDao().update(message)
+                result = message.let { msg ->
+                    val sb = StringBuilder()
+                    sb.appendLine("Received new Message: ${msg.fingerprint}")
+                    sb.appendLine("subject: ${msg.subject}")
+                    sb.appendLine("body: ${msg.body}")
+                    sb.toString()
+                }
+            }
+        }
+
+        // var fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(pbMessageFragment.fingerprint)
+        // debugging output
+        return result
     }
 }
