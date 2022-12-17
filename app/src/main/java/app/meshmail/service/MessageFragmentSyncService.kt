@@ -13,8 +13,11 @@ import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
 import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass
 import app.meshmail.data.protobuf.MessageShadowOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
+import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
 import com.geeksville.mesh.DataPacket
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -66,13 +69,13 @@ class MessageFragmentSyncService : Service() {
                 neededFragments.remove(fragment.m)
             }
             // send a fragment request for the first missing one
-            if(neededFragments.size > 0) {
-                // this should always run outside some weird race condition
+            //if(neededFragments.size > 0) {
+            for(m in neededFragments) {
                 // todo: enqueue more than just the first one...
-                var pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
-                pbProtocolMessage.pmtype = ProtocolMessageTypeOuterClass.ProtocolMessageType.FRAGMENT_REQUEST
-                var pbMessageFragmentRequest = MessageFragmentRequestOuterClass.MessageFragmentRequest.newBuilder()
-                pbMessageFragmentRequest.m = neededFragments.first()
+                var pbProtocolMessage = ProtocolMessage.newBuilder()
+                pbProtocolMessage.pmtype = ProtocolMessageType.FRAGMENT_REQUEST
+                var pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
+                pbMessageFragmentRequest.m = m //neededFragments.first()
                 pbMessageFragmentRequest.fingerprint = message.fingerprint
                 pbProtocolMessage.messageFragmentRequest = pbMessageFragmentRequest.build()
                 var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()

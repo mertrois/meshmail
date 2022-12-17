@@ -12,8 +12,9 @@ interface MessageFragmentDao {
     @Query("SELECT * FROM message_fragments WHERE fingerprint = :fingerprint order by m ASC")
     fun getAllFragmentsOfMessage(fingerprint: String): List<MessageFragmentEntity>
 
+    /* this should only ever return one or none */
     @Query("SELECT * FROM message_fragments WHERE fingerprint = :fingerprint AND m = :m")
-    fun getExactFragment(fingerprint: String, m: Int): MessageFragmentEntity
+    fun getMatchingFragments(fingerprint: String, m: Int): List<MessageFragmentEntity>
 
     @Query("SELECT count(*) FROM message_fragments WHERE fingerprint = :fingerprint")
     fun getNumFragmentsAvailable(fingerprint: String): Int

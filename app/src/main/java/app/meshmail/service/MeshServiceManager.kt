@@ -8,12 +8,14 @@ import androidx.work.*
 import app.meshmail.android.Parameters
 import com.geeksville.mesh.DataPacket
 import com.geeksville.mesh.IMeshService
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.collections.ArrayDeque
 
 class MeshServiceManager(context: Application) {
     private var application: Application = context
     private var meshService: IMeshService? = null
-    private var packetQ: ArrayDeque<DataPacket> = ArrayDeque<DataPacket>()
+    private var packetQ: ConcurrentLinkedQueue<DataPacket> = ConcurrentLinkedQueue<DataPacket>()
     private var workerRunning = false
 
 
@@ -32,7 +34,7 @@ class MeshServiceManager(context: Application) {
 
     private fun sendFromQueue() {
         if(packetQ.isNotEmpty()) {
-            sendNow(packetQ.removeFirst())
+            sendNow(packetQ.poll())
         }
     }
 

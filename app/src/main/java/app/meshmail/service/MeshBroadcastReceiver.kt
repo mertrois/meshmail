@@ -130,7 +130,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         var result: String // for debugging
         val pbMessageFragment: MessageFragment = pbProtocolMessage.messageFragment
         // insert this message fragment into the database
-        if(database.messageFragmentDao().getExactFragment(pbMessageFragment.fingerprint, pbMessageFragment.m) != null) {
+        if(database.messageFragmentDao().getMatchingFragments(pbMessageFragment.fingerprint, pbMessageFragment.m).isNotEmpty()) {
             return "duplicate fragment received: ${pbMessageFragment.m} of ${pbMessageFragment.fingerprint}. Ignoring"
         }
         val messageFragmentEntity = MessageFragmentEntity()
