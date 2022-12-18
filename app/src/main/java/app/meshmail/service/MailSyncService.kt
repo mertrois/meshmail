@@ -51,6 +51,19 @@ class MailSyncService : Service() {
             Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
+
+        // todo: create a flowable query here... that listens for newly inserted messages with hasBeenRequested = false
+        // either inbound or outbound...
+
+//        val unrequestedMessages = database.messageDao().getUnrequestedMessagesFlowable()
+//        val subResult = unrequestedMessages.subscribe { messageEntities ->
+//            Log.d("MailSyncService", "got ${messageEntities.size} new messages via flowable")
+//            for(message in messageEntities) {
+//                Log.d("MailSyncService", "Flowable: ${message.subject}")
+//                broadcastMessageShadow(message)
+//            }
+//        }
+
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -67,17 +80,30 @@ class MailSyncService : Service() {
         return null
     }
 
-    ////////////////////////
 
     private fun syncMail() {
-        val emails: Array<Message>? = getEmails()
-        Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
-        if(emails != null) storeMessages(emails)
+
+        if(prefs?.getBoolean("relay_mode", false)!!) {
+            // get newly arrive messages
+            val emails: Array<Message>? = getEmails()
+            Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
+            // store them
+            if (emails != null) storeMessages(emails)
+
+            // todo: get a list of messages of type OUTBOUND, hasBeenSent=false and attempt to send them via SMTP
+        }
+
         /*
-        Tagging this on here since this method will be run periodically. If emails come in while the client is offline
-        this will ensure the client has a chance to hear about them eventually.
+        Here we will look for messages with haveBeenRequested=false and send out shadows, no matter if this is client
+        or relay.
          */
         broadcastNecessaryMessageShadows()
+    }
+
+    private fun createOutboundEmail(subject: String, recipient: String, sender: String, body: String) {
+        // todo: create a MessageEntity of type= OUTBOUND, make the necessary fragments; broadcast shadow
+        // todo: factor out code from storeMessages that creates fragments and entity. creating an outbound email
+        // should start by creating a javamail message object and passing that in for the sake of code reuse.
     }
 
     private fun storeMessages(messages: Array<Message>) {
@@ -96,6 +122,8 @@ class MailSyncService : Service() {
                 msgEnt.receivedDate = msg.receivedDate
                 msgEnt.hasBeenRequested = false
                 msgEnt.isShadow = false
+                msgEnt.type = "INBOUND"
+                msgEnt.hasBeenSent = false
                 msgEnt.fingerprint = md5(msgEnt.serverId + msgEnt.body).toHex().substring(0,8)
 
                 // now we build the protobuf version of the message
@@ -141,7 +169,8 @@ class MailSyncService : Service() {
                     }
                 }
 
-                // put whole message in database
+                // put whole message in database. needs to go after fragments for future use of live data to trigger
+                // sending a shadow.
                 database.messageDao().insert(msgEnt)
 
                 // finally broadcast the existence of this message to the network

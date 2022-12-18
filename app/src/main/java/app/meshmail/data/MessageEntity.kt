@@ -35,6 +35,13 @@ data class MessageEntity(
     // a message shadow object to alert clients.
     var hasBeenRequested: Boolean = false,
 
+    // origin is either "INBOUND" meaning it came from imap/pop, was created on relay device first, syncd to
+    // client device second. Or "OUTBOUND" meaning it originated on client, was sync'd to relay and sent
+    var type: String = "INBOUND",
+
+    // whether or not an outbound message has been sent over SMTP successfully via the relay.
+    var hasBeenSent: Boolean = false,
+
     // perhaps a shorter version of serverID, but deterministic. e.g. last 8 bytes of md5
     // mostly to save space & not have to send across full serverID. Maybe MD5 of the concatenated protobuf
     // TODO: enforce a unique constraint here

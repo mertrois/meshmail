@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import io.reactivex.Flowable
 
 @Dao
 interface MessageDao {
@@ -13,6 +14,9 @@ interface MessageDao {
 
     @Query("select * from messages where hasBeenRequested = 0")
     fun getUnrequestedMessages(): List<MessageEntity>
+
+    @Query("select * from messages where hasBeenRequested = 0")
+    fun getUnrequestedMessagesFlowable(): Flowable<List<MessageEntity>>
 
     @Query("select * from messages where isShadow = 1")
     fun getAllShadows(): List<MessageEntity>

@@ -182,6 +182,12 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 message.serverId = pbMessage.serverId
                 message.recipient = pbMessage.recipient
                 message.sender = pbMessage.sender
+                /*
+                this message has made the hop (relay-client or client-relay) so set this to true to prevent it
+                from being rebroadcast to to the other side ad-infinitum. No harm would be done as it would be marked as a duplicate,
+                but causes unnecessary traffic.
+                 */
+                message.hasBeenRequested = true
                 //message.receivedDate = pbMessage.receivedDate // todo: figure out conversion
                 message.isShadow = false // woohoo we are a fully-fledged message now
                 database.messageDao().update(message)

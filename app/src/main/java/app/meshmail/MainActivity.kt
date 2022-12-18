@@ -79,8 +79,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         registerReceiver(receiver, intentFilter)
 
-        if(prefs?.getBoolean("relay_mode", false)!!)
-            Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
+
+        Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
 
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
     }

@@ -11,4 +11,5 @@ message Message {
   string sender = 5;
   uint64 receivedDate = 6;
   string fingerprint = 7;
+  string type = 8;  // INBOUND or OUTBOUND
 }
