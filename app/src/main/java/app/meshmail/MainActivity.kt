@@ -6,30 +6,15 @@ import android.os.IBinder
 import androidx.appcompat.app.AppCompatActivity
 import com.geeksville.mesh.IMeshService
 import android.util.Log
-
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-
 import app.meshmail.MeshmailApplication.Companion.prefs
 import app.meshmail.android.Parameters
 import app.meshmail.data.MeshmailDatabase
-import app.meshmail.data.MessageEntity
-import app.meshmail.data.MessageFragmentEntity
-
-import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
-import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
-import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
-import app.meshmail.data.protobuf.MessageFragmentOuterClass.MessageFragment
-import app.meshmail.data.protobuf.MessageShadowOuterClass.MessageShadow
-import app.meshmail.data.protobuf.MessageOuterClass.Message
-import com.geeksville.mesh.DataPacket
-
 import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
-import com.google.protobuf.kotlin.toByteString
-
 import app.meshmail.ui.PreferenceFragment
 
 

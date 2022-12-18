@@ -11,8 +11,14 @@ interface MessageDao {
     @Query("select * from messages")
     fun getAll(): List<MessageEntity>
 
+    @Query("select * from messages where hasBeenRequested = 0")
+    fun getUnrequestedMessages(): List<MessageEntity>
+
     @Query("select * from messages where isShadow = 1")
     fun getAllShadows(): List<MessageEntity>
+
+    @Query("select * from messages where isShadow = 1 LIMIT :limit")
+    fun getShadowsWithLimit(limit: Int=1): List<MessageEntity>
 
     @Insert
     fun insert(messageEntity: MessageEntity)

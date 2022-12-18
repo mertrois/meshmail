@@ -29,7 +29,11 @@ data class MessageEntity(
     var receivedDate: Date? = null,
 
     // a shadow message is a teaser, or a partial message; true until data fields fully populated
-    var isShadow: Boolean? = true,
+    var isShadow: Boolean = true,
+
+    // has a client requested any fragment of this message yet? if not, we need to broadcast
+    // a message shadow object to alert clients.
+    var hasBeenRequested: Boolean = false,
 
     // perhaps a shorter version of serverID, but deterministic. e.g. last 8 bytes of md5
     // mostly to save space & not have to send across full serverID. Maybe MD5 of the concatenated protobuf

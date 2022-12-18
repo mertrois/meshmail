@@ -6,6 +6,7 @@ import androidx.room.Room
 import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.service.MeshServiceManager
+import app.meshmail.service.MessageFragmentSyncService
 
 import com.geeksville.mesh.IMeshService
 
@@ -16,6 +17,7 @@ class MeshmailApplication : Application() {
     }
     var meshService: IMeshService? = null
     val meshServiceManager: MeshServiceManager = MeshServiceManager(this)
+    var fragmentSyncService: MessageFragmentSyncService? = null
 
     // todo: restructure to remove allowmainthreadqueries ... only avoiding premature optimization in development
     val database: MeshmailDatabase by lazy {
@@ -30,15 +32,6 @@ class MeshmailApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         prefs = PrefsManager(this)
-
-
-//        SoLoader.init(this, false)
-//
-//        if (BuildConfig.DEBUG && FlipperUtils.shouldEnableFlipper(this)) {
-//            val client = AndroidFlipperClient.getInstance(this)
-//            client.addPlugin(InspectorFlipperPlugin(this, DescriptorMapping.withDefaults()))
-//            client.start()
-//        }
     }
 
 

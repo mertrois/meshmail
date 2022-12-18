@@ -5,26 +5,21 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
-import androidx.room.Room
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.MeshmailApplication.Companion.prefs
-import app.meshmail.android.PrefsManager
-
-
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
 import app.meshmail.data.protobuf.MessageOuterClass
 import app.meshmail.data.protobuf.MessageShadowOuterClass
+import app.meshmail.data.protobuf.MessageShadowOuterClass.MessageShadow
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass
+import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
-
+import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
-import com.geeksville.mesh.DataPacket
-
-
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -75,31 +70,37 @@ class MailSyncService : Service() {
     ////////////////////////
 
     private fun syncMail() {
-        val messages: Array<Message>? = getMessages()
-        Log.d(this.javaClass.name, "there are ${messages?.size} unseen messages in the inbox")
-        if(messages != null) storeMessages(messages)
+        val emails: Array<Message>? = getEmails()
+        Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
+        if(emails != null) storeMessages(emails)
+        /*
+        Tagging this on here since this method will be run periodically. If emails come in while the client is offline
+        this will ensure the client has a chance to hear about them eventually.
+         */
+        broadcastNecessaryMessageShadows()
     }
 
     private fun storeMessages(messages: Array<Message>) {
         for (msg in messages) {
             val mid: String = msg.getHeader("Message-ID")[0]
-            if(database.messageDao().getByServerId(mid) == null) {
+            if(database.messageDao().getByServerId(mid) == null) {  // this message is not in the database
                 //todo: ensure this entire sequence is atomic
+
                 Log.d(this.javaClass.name, "message not found in db, adding it now")
-                var msgEnt = MessageEntity()
+                val msgEnt = MessageEntity()
                 msgEnt.subject = msg.subject
                 msgEnt.body = extractReadableBody(msg)
                 msgEnt.recipient = msg.allRecipients[0].toString()
                 msgEnt.sender = msg.from[0].toString()
                 msgEnt.serverId = mid
                 msgEnt.receivedDate = msg.receivedDate
-
+                msgEnt.hasBeenRequested = false
                 msgEnt.isShadow = false
-                msgEnt.fingerprint = md5(msgEnt.serverId!!).toHex().substring(0,8)
+                msgEnt.fingerprint = md5(msgEnt.serverId + msgEnt.body).toHex().substring(0,8)
 
                 // now we build the protobuf version of the message
                 // todo: clean this up with a builder to simply copying values over
-                var pbMessage = MessageOuterClass.Message.newBuilder()
+                val pbMessage = MessageOuterClass.Message.newBuilder()
                 pbMessage.subject = msgEnt.subject
                 pbMessage.body = msgEnt.body    // TODO: maybe perform zip compression here if needed
                 pbMessage.recipient = msgEnt.recipient
@@ -109,21 +110,12 @@ class MailSyncService : Service() {
                 pbMessage.fingerprint = msgEnt.fingerprint
 
                 // create the protobuf for the message, the raw data will get put into fragments
-                var pbMessage_bytes: ByteArray = pbMessage.build().toByteArray()
+                val pbMessage_bytes: ByteArray = pbMessage.build().toByteArray()
                 msgEnt.protoBufSize = pbMessage_bytes.size
-                var nFragments = Math.ceil(pbMessage_bytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
+                // todo: calculate the largest max_message_fragment_size can be
+                val nFragments = Math.ceil(pbMessage_bytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
                 msgEnt.nFragments = nFragments
 
-
-                var pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.newBuilder()
-                pbProtocolMessage.pmtype = ProtocolMessageTypeOuterClass.ProtocolMessageType.SHADOW_BROADCAST
-                var pbMessageShadow = MessageShadowOuterClass.MessageShadow.newBuilder()
-                pbMessageShadow.fingerprint = pbMessage.fingerprint
-                pbMessageShadow.subject = pbMessage.subject
-                pbMessageShadow.nFragments = nFragments
-                pbProtocolMessage.messageShadow = pbMessageShadow.build()
-                // this is ready to send over mesh network to announce a new message has come in
-                var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
 
                 // but first, we need to populate the database with the fragments so they're ready to be served
                 // when requested
@@ -151,8 +143,10 @@ class MailSyncService : Service() {
 
                 // put whole message in database
                 database.messageDao().insert(msgEnt)
-                // broadcast the message shadow
-                meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+
+                // finally broadcast the existence of this message to the network
+                broadcastMessageShadow(msgEnt)
+
 
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
@@ -162,7 +156,29 @@ class MailSyncService : Service() {
         }
     }
 
-    private fun getMessages(): Array<Message>? {
+    private fun broadcastNecessaryMessageShadows() {
+        // get a list of messages that haven't been requested yet
+        val unrequestedMessages: List<MessageEntity> = database.messageDao().getUnrequestedMessages()
+        for(message in unrequestedMessages) {
+            broadcastMessageShadow(message)
+        }
+    }
+
+    private fun broadcastMessageShadow(message: MessageEntity) {
+        val pbProtocolMessage = ProtocolMessage.newBuilder()
+        pbProtocolMessage.pmtype = ProtocolMessageType.SHADOW_BROADCAST
+        val pbMessageShadow = MessageShadow.newBuilder()
+        pbMessageShadow.fingerprint = message.fingerprint
+        pbMessageShadow.subject = message.subject
+        pbMessageShadow.nFragments = message.nFragments!!
+        pbProtocolMessage.messageShadow = pbMessageShadow.build()
+        // this is ready to send over mesh network to announce a new message has come in
+        var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
+        // broadcast the message shadow
+        meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+    }
+
+    private fun getEmails(): Array<Message>? {
         val imapUsername = prefs?.getString("imap_username","")
         val imapPassword = prefs?.getString("imap_password","")
 

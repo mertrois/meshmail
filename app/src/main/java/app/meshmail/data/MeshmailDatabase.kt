@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [TestEntity::class, MessageEntity::class, MessageFragmentEntity::class], version = 5, exportSchema = false)
+@Database(entities = [TestEntity::class, MessageEntity::class, MessageFragmentEntity::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class MeshmailDatabase : RoomDatabase() {
     abstract fun testDao(): TestDao
