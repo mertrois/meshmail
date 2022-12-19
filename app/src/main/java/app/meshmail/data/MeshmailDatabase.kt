@@ -6,14 +6,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [TestEntity::class, MessageEntity::class, MessageFragmentEntity::class], version = 7, exportSchema = false)
+@Database(entities = [MessageEntity::class, MessageFragmentEntity::class], version = 7, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class MeshmailDatabase : RoomDatabase() {
-    abstract fun testDao(): TestDao
     abstract fun messageDao(): MessageDao
     abstract fun messageFragmentDao(): MessageFragmentDao
 
-    // syntactic sugar, currently broken when called from service.
     companion object {
         fun getDatabase(context: Context): MeshmailDatabase {
             return Room.databaseBuilder(

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/text_uptime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Uptime: 0 days 0 hours 0 minutes"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/text_last_contact"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="last contact:"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/imap_server_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Imap server:"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/smtp_server_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SMTP Server:"
+        android:textSize="18sp" />
+
+</LinearLayout>

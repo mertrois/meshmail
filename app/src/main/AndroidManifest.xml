@@ -16,7 +16,8 @@
         tools:replace="android:allowBackup">
         <activity
             android:name="app.meshmail.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -6,6 +6,9 @@ import android.os.IBinder
 import androidx.appcompat.app.AppCompatActivity
 import com.geeksville.mesh.IMeshService
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import androidx.appcompat.app.ActionBar
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import app.meshmail.MeshmailApplication.Companion.prefs
@@ -15,14 +18,12 @@ import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
+import app.meshmail.ui.ClientMessageListFragment
 import app.meshmail.ui.PreferenceFragment
+import app.meshmail.ui.StatusRelayFragment
 
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
-
-    //private lateinit var statusText: TextView
-
-
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
     private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
 
@@ -53,22 +54,49 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         addAction("com.geeksville.mesh.MESSAGE_STATUS")
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_settings -> {
+                supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, PreferenceFragment())
+                    .addToBackStack("main")
+                    .commit()
+                return true
+            }
+            android.R.id.home -> {
+                return if(supportFragmentManager.backStackEntryCount == 0) {
+                    finish()
+                    true
+                } else {
+                    supportFragmentManager.popBackStack()
+                    true
+                }
+            } else -> {
+                return super.onOptionsItemSelected(item)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        // for now, load prefs frag to mainactivity right away
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.settings, PreferenceFragment())
-            .commit()
-
         // todo: remove; only for dev. Clean up before running.
         database.messageDao().deleteAll()
         database.messageFragmentDao().deleteAll()
+
+
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.fragment_container, ClientMessageListFragment())
+            .commit()
+
 
         try {
             applicationContext.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
@@ -79,10 +107,14 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         registerReceiver(receiver, intentFilter)
 
-
         Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
 
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
+
+        supportActionBar?.title = "meshmail / client"
+        supportActionBar?.setDisplayHomeAsUpEnabled(true) // displays back arrow if true
+        supportActionBar?.setDisplayShowTitleEnabled(true)
+        supportActionBar?.elevation = 4.0f
     }
 
     override fun onDestroy() {
@@ -90,32 +122,29 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         unbindService(serviceConnection)
     }
 
-    /*
-    Preference related stuff
-     */
 
 
     override fun onPreferenceStartFragment(
         caller: PreferenceFragmentCompat,
         pref: Preference
     ): Boolean {
-        // Instantiate the new Fragment
-        val args = pref.extras
-        val fragment = supportFragmentManager.fragmentFactory.instantiate(
-            classLoader,
-            pref.fragment ?: return false
-        ).apply {
-            arguments = args
-            setTargetFragment(caller, 0)
+            // Instantiate the new Fragment
+            val args = pref.extras
+            val fragment = supportFragmentManager.fragmentFactory.instantiate(
+                classLoader,
+                pref.fragment ?: return false
+            ).apply {
+                arguments = args
+                setTargetFragment(caller, 0)
+            }
+            // Replace the existing Fragment with the new Fragment
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+            title = pref.title
+            return true
         }
-        // Replace the existing Fragment with the new Fragment
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.settings, fragment)
-            .addToBackStack(null)
-            .commit()
-        title = pref.title
-        return true
-    }
 
 }
 

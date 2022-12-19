@@ -174,7 +174,7 @@ class MailSyncService : Service() {
                 database.messageDao().insert(msgEnt)
 
                 // finally broadcast the existence of this message to the network
-                broadcastMessageShadow(msgEnt)
+                broadcastMessageShadow(msgEnt, "initial")
 
 
             } else {
@@ -189,11 +189,11 @@ class MailSyncService : Service() {
         // get a list of messages that haven't been requested yet
         val unrequestedMessages: List<MessageEntity> = database.messageDao().getUnrequestedMessages()
         for(message in unrequestedMessages) {
-            broadcastMessageShadow(message)
+            broadcastMessageShadow(message, "no response from client")
         }
     }
 
-    private fun broadcastMessageShadow(message: MessageEntity) {
+    private fun broadcastMessageShadow(message: MessageEntity, reason: String="") {
         val pbProtocolMessage = ProtocolMessage.newBuilder()
         pbProtocolMessage.pmtype = ProtocolMessageType.SHADOW_BROADCAST
         val pbMessageShadow = MessageShadow.newBuilder()
@@ -202,9 +202,10 @@ class MailSyncService : Service() {
         pbMessageShadow.nFragments = message.nFragments!!
         pbProtocolMessage.messageShadow = pbMessageShadow.build()
         // this is ready to send over mesh network to announce a new message has come in
-        var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
+        val pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
         // broadcast the message shadow
         meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+        Log.d("MailSyncService","broadcast message shadow: $reason")
     }
 
     private fun getEmails(): Array<Message>? {

@@ -1,5 +1,6 @@
 package app.meshmail.data
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -17,6 +18,9 @@ interface MessageDao {
 
     @Query("select * from messages where hasBeenRequested = 0")
     fun getUnrequestedMessagesFlowable(): Flowable<List<MessageEntity>>
+
+    @Query("select * from messages where isShadow = 0")
+    fun getNonShadowMessagesLive(): LiveData<List<MessageEntity>>
 
     @Query("select * from messages where isShadow = 1")
     fun getAllShadows(): List<MessageEntity>
