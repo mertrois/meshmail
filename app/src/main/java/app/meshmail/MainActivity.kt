@@ -111,7 +111,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
 
-        supportActionBar?.title = "meshmail / client"
+        val appType: String = if(prefs?.getBoolean("relay_mode") == true) "relay" else "client"
+        supportActionBar?.title = "Meshmail ($appType)"
         supportActionBar?.setDisplayHomeAsUpEnabled(true) // displays back arrow if true
         supportActionBar?.setDisplayShowTitleEnabled(true)
         supportActionBar?.elevation = 4.0f
