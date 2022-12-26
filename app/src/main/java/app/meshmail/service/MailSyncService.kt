@@ -130,11 +130,11 @@ class MailSyncService : Service() {
                 // todo: clean this up with a builder to simply copying values over
                 val pbMessage = MessageOuterClass.Message.newBuilder()
                 pbMessage.subject = msgEnt.subject
-                pbMessage.body = msgEnt.body    // TODO: maybe perform zip compression here if needed
+                pbMessage.body = msgEnt.body    // TODO: maybe perform LZ compression here if needed
                 pbMessage.recipient = msgEnt.recipient
                 pbMessage.sender = msgEnt.sender
                 pbMessage.serverId = msgEnt.serverId
-                //pbMessage.receivedDate = msgEnt.receivedDate // TODO: figure out conversion of date type to include here
+                pbMessage.receivedDate = dateToMillis(msgEnt.receivedDate!!)
                 pbMessage.fingerprint = msgEnt.fingerprint
 
                 // create the protobuf for the message, the raw data will get put into fragments

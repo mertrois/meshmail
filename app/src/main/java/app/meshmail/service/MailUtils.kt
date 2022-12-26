@@ -1,5 +1,6 @@
 package app.meshmail.service
 
+import java.util.*
 import javax.mail.Message
 import javax.mail.internet.MimeMultipart
 
@@ -24,4 +25,15 @@ fun extractReadableBody(message: Message): String {
         }
     }
     return body.toString()
+}
+
+fun dateToMillis(date: Date): Long {
+    if(date == null)
+        return 0
+    else
+        return date.getTime()
+}
+
+fun millisToDate(millis: Long): Date {
+    return java.util.Date(millis)
 }

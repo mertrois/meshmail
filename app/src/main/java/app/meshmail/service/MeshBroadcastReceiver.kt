@@ -188,7 +188,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 but causes unnecessary traffic.
                  */
                 message.hasBeenRequested = true
-                //message.receivedDate = pbMessage.receivedDate // todo: figure out conversion
+                message.receivedDate = millisToDate(pbMessage.receivedDate)
                 message.isShadow = false // woohoo we are a fully-fledged message now
                 database.messageDao().update(message)
                 result = message.let { msg ->

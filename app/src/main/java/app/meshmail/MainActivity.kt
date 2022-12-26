@@ -123,8 +123,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         unbindService(serviceConnection)
     }
 
-
-
     override fun onPreferenceStartFragment(
         caller: PreferenceFragmentCompat,
         pref: Preference
