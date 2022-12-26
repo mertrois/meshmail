@@ -91,12 +91,16 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         database.messageDao().deleteAll()
         database.messageFragmentDao().deleteAll()
 
-
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.fragment_container, ClientMessageListFragment())
-            .commit()
-
+        if(prefs?.getBoolean("relay_mode") == false)
+            supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.fragment_container, ClientMessageListFragment())
+                .commit()
+        else // relay mode
+            supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.fragment_container, StatusRelayFragment())
+                .commit()
 
         try {
             applicationContext.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)

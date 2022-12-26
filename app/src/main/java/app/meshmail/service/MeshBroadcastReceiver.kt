@@ -190,6 +190,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 message.hasBeenRequested = true
                 message.receivedDate = millisToDate(pbMessage.receivedDate)
                 message.isShadow = false // woohoo we are a fully-fledged message now
+                message.folder = "INBOX" // all newly received messages go to inbox.
                 database.messageDao().update(message)
                 result = message.let { msg ->
                     val sb = StringBuilder()

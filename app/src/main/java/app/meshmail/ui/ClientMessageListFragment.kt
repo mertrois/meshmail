@@ -12,6 +12,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.meshmail.R
@@ -24,12 +25,41 @@ class ClientMessageListFragment : Fragment() {
     private lateinit var messageAdapter: MessageAdapter
     private lateinit var messagesLayoutManager: RecyclerView.LayoutManager
 
-//    private val clientMessagesListViewModel: ClientMessagesListViewModel by viewModels()
-//    private val clientMessageListViewModel by viewModels<ClientMessagesListViewModel> {
-//        ViewModelProvider.AndroidViewModelFactory(app)
-//    }
-//    private val clientMessagesListViewModel = ViewModelProvider(this, ClientMessagesListViewModelFactory(app))
-//        .get(ClientMessagesListViewModel::class.java)
+
+    val ithCallback = object: ItemTouchHelper.Callback() {
+        override fun getMovementFlags(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder
+        ): Int {
+            // these need to change based on the tab being viewed--if inbox then RIGHT if Archive then R and L, if trash, then L only
+            val swipeFlags = ItemTouchHelper.RIGHT // or ItemTouchHelper.LEFT
+            return makeMovementFlags(0, swipeFlags)
+        }
+
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            return false
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            val position = viewHolder.absoluteAdapterPosition
+
+            // val item = items[position]
+            // items.removeAt(position)
+            messageAdapter.notifyItemRemoved(position)
+            // Add the item to the archive or perform other actions as needed
+
+            // need to check for nulls here
+            val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
+            val message: MessageEntity = list.get(position)!!
+            message?.folder = "ARCHIVE"
+            clientMessagesListViewModel.database.messageDao().update(message)
+        }
+
+    }
 
     private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
         ClientMessagesListViewModelFactory(app)
@@ -60,14 +90,12 @@ class ClientMessageListFragment : Fragment() {
         clientMessagesListViewModel.messagesList.observe(viewLifecycleOwner, Observer {
             messages -> messageAdapter.submitList(messages)
         })
+
+        val itemTouchHelper = ItemTouchHelper(ithCallback)
+        itemTouchHelper.attachToRecyclerView(messagesRecyclerView)
+
         return view
     }
 
-//    private fun getEmails(): List<MessageEntity> {
-//        // Return a list of emails
-//        return listOf(
-//            MessageEntity(subject="this is a test subject", body="yo I can't make it today"),
-//            MessageEntity(subject="We have a very special offer for you, bitch", body="Your rental car upgrade coupons are expiring today")
-//        )
-//    }
+
 }

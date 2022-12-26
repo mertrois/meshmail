@@ -35,6 +35,9 @@ data class MessageEntity(
     // a message shadow object to alert clients.
     var hasBeenRequested: Boolean = false,
 
+    // INBOX, ARCHIVE, TRASH for the client; if it's the relay, undefined.
+    var folder: String = "",
+
     // origin is either "INBOUND" meaning it came from imap/pop, was created on relay device first, syncd to
     // client device second. Or "OUTBOUND" meaning it originated on client, was sync'd to relay and sent
     var type: String = "INBOUND",

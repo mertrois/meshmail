@@ -22,6 +22,9 @@ interface MessageDao {
     @Query("select * from messages where isShadow = 0")
     fun getNonShadowMessagesLive(): LiveData<List<MessageEntity>>
 
+    @Query("select * from messages where isShadow = 0 and folder = 'INBOX'")
+    fun getInboxMessagesLive(): LiveData<List<MessageEntity>>
+
     @Query("select * from messages where isShadow = 1")
     fun getAllShadows(): List<MessageEntity>
 

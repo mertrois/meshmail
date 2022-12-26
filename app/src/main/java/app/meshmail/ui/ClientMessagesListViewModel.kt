@@ -5,10 +5,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import app.meshmail.MeshmailApplication
+import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 
 class ClientMessagesListViewModel(context: Application) : ViewModel() {
-    val messagesList: LiveData<List<MessageEntity>> = (context as MeshmailApplication).database.messageDao().getNonShadowMessagesLive()
+    val database: MeshmailDatabase = (context as MeshmailApplication).database
+    val messagesList: LiveData<List<MessageEntity>> = (context as MeshmailApplication).database.messageDao().getInboxMessagesLive()
 }
 
 // need a special factory because the ViewModel above needs access to the database, which requires application
