@@ -6,6 +6,7 @@ import java.text.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -14,7 +15,9 @@ import app.meshmail.R
 import java.util.*
 
 
-class MessageAdapter : ListAdapter<MessageEntity, MessageAdapter.ViewHolder>(MessageDiffCallback()) {
+
+
+class MessageAdapter(private val onClickListener: OnClickListener) : ListAdapter<MessageEntity, MessageAdapter.ViewHolder>(MessageDiffCallback()) {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val senderTextView: TextView = itemView.findViewById(R.id.sender_text_view)
@@ -33,6 +36,13 @@ class MessageAdapter : ListAdapter<MessageEntity, MessageAdapter.ViewHolder>(Mes
         holder.senderTextView.text = getFormattedSender(message)
         holder.dateTextView.text = getFormattedDate(message)
         holder.subjectTextView.text = message.subject?.trim()
+        holder.itemView.setOnClickListener {
+            onClickListener.onClick(message)
+        }
+    }
+
+    class OnClickListener(val clickListener: (message: MessageEntity) -> Unit) {
+        fun onClick(message: MessageEntity) = clickListener(message)
     }
 
     class MessageDiffCallback : DiffUtil.ItemCallback<MessageEntity>() {

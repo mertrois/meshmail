@@ -3,15 +3,14 @@ package app.meshmail.ui
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
-import android.provider.ContactsContract
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,7 +25,35 @@ class ClientMessageListFragment : Fragment() {
     private lateinit var messagesLayoutManager: RecyclerView.LayoutManager
 
 
-    val ithCallback = object: ItemTouchHelper.Callback() {
+
+//    val itemTouchHandler = object: RecyclerView.OnItemTouchListener {
+//        override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+//            return false
+//        }
+//
+//        override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+//            if(e.action == MotionEvent.ACTION_UP) {
+//                val view = messagesRecyclerView.findChildViewUnder(e.x, e.y)
+//                if (view != null) {
+//                    val viewHolder = messagesRecyclerView.getChildViewHolder(view)
+//                    val message: MessageEntity =
+//                        messageAtPosition(viewHolder.absoluteAdapterPosition)
+//                    Toast.makeText(app, message.body, Toast.LENGTH_SHORT).show()
+//                }
+//            }
+//        }
+//
+//        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+//        }
+//    }
+
+    fun messageAtPosition(position: Int): MessageEntity {
+        val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
+        val message: MessageEntity = list.get(position)!!
+        return message
+    }
+
+    val itemTouchHelperCallback = object: ItemTouchHelper.Callback() {
         override fun getMovementFlags(
             recyclerView: RecyclerView,
             viewHolder: RecyclerView.ViewHolder
@@ -47,16 +74,12 @@ class ClientMessageListFragment : Fragment() {
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
             val position = viewHolder.absoluteAdapterPosition
 
-            // val item = items[position]
-            // items.removeAt(position)
             messageAdapter.notifyItemRemoved(position)
-            // Add the item to the archive or perform other actions as needed
 
-            // need to check for nulls here
-            val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
-            val message: MessageEntity = list.get(position)!!
+            val message: MessageEntity = messageAtPosition(position)
             message?.folder = "ARCHIVE"
             clientMessagesListViewModel.database.messageDao().update(message)
+
         }
 
     }
@@ -80,8 +103,13 @@ class ClientMessageListFragment : Fragment() {
 
         // Initialize the RecyclerView and adapter
         messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
-        messageAdapter = MessageAdapter()
+        messageAdapter = MessageAdapter(MessageAdapter.OnClickListener { message ->
+            Toast.makeText(app, message.subject, Toast.LENGTH_SHORT).show()
+        })
         messagesLayoutManager = LinearLayoutManager(context)
+
+
+
 
         // Set the adapter and layout manager for the RecyclerView
         messagesRecyclerView.adapter = messageAdapter
@@ -91,8 +119,12 @@ class ClientMessageListFragment : Fragment() {
             messages -> messageAdapter.submitList(messages)
         })
 
-        val itemTouchHelper = ItemTouchHelper(ithCallback)
-        itemTouchHelper.attachToRecyclerView(messagesRecyclerView)
+        // setup the listener for tap events
+        //messagesRecyclerView.addOnItemTouchListener(itemTouchHandler)
+        // setup the listener for swipe events
+        ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(messagesRecyclerView)
+
+
 
         return view
     }

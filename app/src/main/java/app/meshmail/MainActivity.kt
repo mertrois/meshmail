@@ -88,8 +88,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         setContentView(R.layout.activity_main)
 
         // todo: remove; only for dev. Clean up before running.
-        database.messageDao().deleteAll()
-        database.messageFragmentDao().deleteAll()
+        //database.messageDao().deleteAll()
+        //database.messageFragmentDao().deleteAll()
 
         if(prefs?.getBoolean("relay_mode") == false)
             supportFragmentManager
