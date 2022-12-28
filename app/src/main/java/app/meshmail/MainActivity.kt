@@ -91,16 +91,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 //        database.messageDao().deleteAll()
 //        database.messageFragmentDao().deleteAll()
 
-        if(prefs?.getBoolean("relay_mode") == false)
-            supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.fragment_container, ClientMessageListFragment())
-                .commit()
-        else // relay mode
-            supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.fragment_container, StatusRelayFragment())
-                .commit()
+        // load initial fragment based on mode the app is in
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.fragment_container, if(prefs?.getBoolean("relay_mode") == false) ClientMessageListFragment() else StatusRelayFragment())
+            .commit()
 
         try {
             applicationContext.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
