@@ -83,7 +83,7 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
             val dateFormat = DateFormat.getDateInstance(DateFormat.SHORT) // options are short, medium, long, full
             dateString = dateFormat.format(msgDate)
         } else {
-            val timeFormat = DateFormat.getTimeInstance()
+            val timeFormat = java.text.SimpleDateFormat("HH:mm", Locale.getDefault())
             dateString = timeFormat.format(msgDate)
         }
 
