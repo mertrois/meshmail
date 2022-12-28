@@ -67,7 +67,7 @@ class MailSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "mail sync service starting", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(this, "mail sync service starting", Toast.LENGTH_SHORT).show()
         return START_STICKY
     }
 
