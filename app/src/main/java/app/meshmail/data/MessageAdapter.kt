@@ -1,5 +1,6 @@
 package app.meshmail.data
 
+import android.graphics.Typeface
 import java.text.DateFormat
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,18 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         val senderTextView: TextView = itemView.findViewById(R.id.sender_text_view)
         val dateTextView: TextView = itemView.findViewById(R.id.date_text_view)
         val subjectTextView: TextView = itemView.findViewById(R.id.subject_text_view)
+
+        private val normFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        private val boldFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+
+        fun setTypeface(bold: Boolean) {
+            var useFace = normFace
+            if(bold) useFace = boldFace
+
+            senderTextView.typeface = useFace
+            dateTextView.typeface = useFace
+            subjectTextView.typeface = useFace
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -36,6 +49,10 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         holder.itemView.setOnClickListener {
             onClickListener.onClick(message)
         }
+
+        holder.setTypeface(!message.hasBeenRead)
+
+
     }
 
     class OnClickListener(val clickListener: (message: MessageEntity) -> Unit) {

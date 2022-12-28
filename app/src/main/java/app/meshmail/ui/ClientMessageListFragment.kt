@@ -90,7 +90,6 @@ class ClientMessageListFragment : Fragment() {
             message?.folder = newFolder
             clientMessagesListViewModel.database.messageDao().update(message)
         }
-
     }
 
 
@@ -120,13 +119,26 @@ class ClientMessageListFragment : Fragment() {
             tabLayout.getTabAt(i)?.text = folders[i]
         }
 
-        // select middle tab
-        tabLayout.selectTab(tabLayout.getTabAt(1))
+        val startingFolder = 1  // todo: get this from saved fragment state
+        // select starting tab
+        tabLayout.selectTab(tabLayout.getTabAt(startingFolder))
+        // set current folder to correspond
+        clientMessagesListViewModel.setCurrentFolder(folders[startingFolder])
 
         // Initialize the RecyclerView and adapter
         messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
+
+        // set the handler for a message being tapped (open new fragment)
         messageAdapter = MessageAdapter(MessageAdapter.OnClickListener { message ->
+            val position = clientMessagesListViewModel.getPosition(message)
+            if(position >= 0) {
+                val viewHolder =
+                    messagesRecyclerView.findViewHolderForAdapterPosition(position) as MessageAdapter.ViewHolder
+                viewHolder.setTypeface(bold = false)
+            }
+            clientMessagesListViewModel.markMessageRead(message)
             Toast.makeText(app, message.subject, Toast.LENGTH_SHORT).show()
+            // todo: open in new fragment
         })
         messagesLayoutManager = LinearLayoutManager(context)
 

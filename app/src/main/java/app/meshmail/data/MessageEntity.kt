@@ -45,6 +45,9 @@ data class MessageEntity(
     // whether or not an outbound message has been sent over SMTP successfully via the relay.
     var hasBeenSent: Boolean = false,
 
+    // to control bold typeface in list
+    var hasBeenRead: Boolean = false,
+
     // perhaps a shorter version of serverID, but deterministic. e.g. last 8 bytes of md5
     // mostly to save space & not have to send across full serverID. Maybe MD5 of the concatenated protobuf
     // TODO: enforce a unique constraint here

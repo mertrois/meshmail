@@ -5,14 +5,13 @@ import androidx.lifecycle.*
 import app.meshmail.MeshmailApplication
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
+import com.geeksville.mesh.data
 
 class ClientMessagesListViewModel(context: Application) : ViewModel() {
     val app: Application = context
     val database: MeshmailDatabase = (context as MeshmailApplication).database
 
-    private val _currentFolder = MutableLiveData<String>("INBOX")
-
-    //private val currentFolder: LiveData<String> = _currentFolder
+    private val _currentFolder = MutableLiveData<String>()
 
     val messagesList: LiveData<List<MessageEntity>> = Transformations.switchMap(_currentFolder) { folder ->
         database.messageDao().getMessagesByFolderLive(folder)
@@ -22,6 +21,14 @@ class ClientMessagesListViewModel(context: Application) : ViewModel() {
         _currentFolder.value = folder
     }
 
+    fun markMessageRead(message: MessageEntity, hasBeenRead: Boolean = true) {
+        message.hasBeenRead = hasBeenRead
+        database.messageDao().update(message)
+    }
+
+    fun getPosition(message: MessageEntity): Int {
+        return messagesList.value?.indexOf(message) ?: -1
+    }
 
 }
 
