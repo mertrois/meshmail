@@ -28,13 +28,14 @@ class ClientMessageListFragment : Fragment() {
     private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
         ClientMessagesListViewModelFactory(app)
     }
-    private val folders: ArrayList<String> = arrayListOf("INBOX","ARCHIVE","TRASH")
+    private val folders: ArrayList<String> = arrayListOf("ARCHIVE","INBOX","TRASH")
 
     private val tabSelectedListener = object: TabLayout.OnTabSelectedListener {
         override fun onTabSelected(tab: TabLayout.Tab?) {
             if(tab != null) {
                 clientMessagesListViewModel.setCurrentFolder(folders[tab.position])
             }
+            // now reconfigure the swipe left/right actions based on current tab
         }
 
         override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -51,8 +52,14 @@ class ClientMessageListFragment : Fragment() {
             recyclerView: RecyclerView,
             viewHolder: RecyclerView.ViewHolder
         ): Int {
-            // these need to change based on the tab being viewed--if inbox then RIGHT if Archive then R and L, if trash, then L only
-            val swipeFlags = ItemTouchHelper.RIGHT // or ItemTouchHelper.LEFT
+
+            val swipeFlags = when(tabLayout.selectedTabPosition) {
+                0 -> ItemTouchHelper.RIGHT                              // inbox
+                1 -> ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT      // archive
+                2 -> ItemTouchHelper.LEFT                               // trash
+                else -> 0
+            }
+
             return makeMovementFlags(0, swipeFlags)
         }
 
@@ -68,7 +75,19 @@ class ClientMessageListFragment : Fragment() {
             val position = viewHolder.absoluteAdapterPosition
             val message: MessageEntity = messageAtPosition(position)
             messageAdapter.notifyItemRemoved(position)
-            message?.folder = "ARCHIVE"
+            val newFolder: String = when(tabLayout.selectedTabPosition) {
+                0 -> {
+                    folders[1]
+                } 1 -> {
+                    if(direction == ItemTouchHelper.LEFT) folders[0]
+                    else folders[2]
+                } 2 -> {
+                    folders[1]
+                } else -> {
+                    throw Exception("Tab does not exist")
+                }
+            }
+            message?.folder = newFolder
             clientMessagesListViewModel.database.messageDao().update(message)
         }
 
@@ -96,8 +115,13 @@ class ClientMessageListFragment : Fragment() {
 
         tabLayout.addOnTabSelectedListener(tabSelectedListener)
 
-        val inboxTab = tabLayout.getTabAt(0)
-        tabLayout.selectTab(inboxTab)
+        // set the tab names according to our folders defined above
+        for(i in 0 until tabLayout.tabCount) {
+            tabLayout.getTabAt(i)?.text = folders[i]
+        }
+
+        // select middle tab
+        tabLayout.selectTab(tabLayout.getTabAt(1))
 
         // Initialize the RecyclerView and adapter
         messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
