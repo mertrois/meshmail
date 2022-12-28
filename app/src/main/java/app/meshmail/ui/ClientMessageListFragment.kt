@@ -3,10 +3,7 @@ package app.meshmail.ui
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -29,7 +26,11 @@ class ClientMessageListFragment : Fragment() {
         ClientMessagesListViewModelFactory(app)
     }
     private val folders: ArrayList<String> = arrayListOf("ARCHIVE","INBOX","TRASH")
+    private lateinit var trashMenuItem: MenuItem
 
+    /*
+        Listener to handle tabs; letting viewModel respond to tab changes
+     */
     private val tabSelectedListener = object: TabLayout.OnTabSelectedListener {
         override fun onTabSelected(tab: TabLayout.Tab?) {
             if(tab != null) {
@@ -43,10 +44,14 @@ class ClientMessageListFragment : Fragment() {
         }
 
         override fun onTabReselected(tab: TabLayout.Tab?) {
-            return Unit
+            // tap the tab to scroll to the top
+            messagesRecyclerView.scrollToPosition(0)
         }
     }
 
+    /*
+    Handles all swipe functionality for moving messages from inbox to archive or trash
+     */
     private val itemTouchHelperCallback = object: ItemTouchHelper.Callback() {
         override fun getMovementFlags(
             recyclerView: RecyclerView,
@@ -59,7 +64,6 @@ class ClientMessageListFragment : Fragment() {
                 2 -> ItemTouchHelper.LEFT                               // trash
                 else -> 0
             }
-
             return makeMovementFlags(0, swipeFlags)
         }
 
@@ -92,6 +96,14 @@ class ClientMessageListFragment : Fragment() {
         }
     }
 
+    public interface FragmentRequestListener {
+        fun loadMessageFragment(message: MessageEntity)
+    }
+    var requestListener: FragmentRequestListener? = null
+
+    fun emptyTrash() {
+        Toast.makeText(app, "emptying trash", Toast.LENGTH_SHORT).show()
+    }
 
     fun messageAtPosition(position: Int): MessageEntity {
         val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
@@ -101,13 +113,31 @@ class ClientMessageListFragment : Fragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         app = requireActivity().application
+        if(context is FragmentRequestListener) {
+            requestListener = context
+        } else {
+            throw RuntimeException("$context must implement FragmentRequestListener")
+        }
     }
+
+    fun loadMessage(message: MessageEntity) {
+        requestListener?.loadMessageFragment(message)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.menu_messages, menu)
+    }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.messages_fragment, container, false)
         tabLayout = view.findViewById(R.id.folders_tab_layout)
@@ -137,8 +167,7 @@ class ClientMessageListFragment : Fragment() {
                 viewHolder.setTypeface(bold = false)
             }
             clientMessagesListViewModel.markMessageRead(message)
-            Toast.makeText(app, message.subject, Toast.LENGTH_SHORT).show()
-            // todo: open in new fragment
+            loadMessage(message)
         })
         messagesLayoutManager = LinearLayoutManager(context)
 

@@ -8,12 +8,15 @@ import com.geeksville.mesh.IMeshService
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.ActionBar
+import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import app.meshmail.MeshmailApplication.Companion.prefs
 import app.meshmail.android.Parameters
 import app.meshmail.data.MeshmailDatabase
+import app.meshmail.data.MessageEntity
 import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
@@ -23,7 +26,7 @@ import app.meshmail.ui.PreferenceFragment
 import app.meshmail.ui.StatusRelayFragment
 
 
-class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, ClientMessageListFragment.FragmentRequestListener {
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
     private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
 
@@ -69,6 +72,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     .commit()
                 return true
             }
+            R.id.empty_trash -> {
+                // get a reference to the current fragment
+                val currentFragment: Fragment? = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                // see if non null, and is of the correct type
+                if((currentFragment != null) && (currentFragment is ClientMessageListFragment)) {
+                    (currentFragment as ClientMessageListFragment).emptyTrash()
+                }
+                return true
+            }
             android.R.id.home -> {
                 return if(supportFragmentManager.backStackEntryCount == 0) {
                     finish()
@@ -83,13 +95,22 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         }
     }
 
+    override fun loadMessageFragment(message: MessageEntity) {
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.fragment_container, MessageFragment(message))
+            .addToBackStack("main")
+            .commit()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // todo: remove; only for dev. Clean up before running.
-//        database.messageDao().deleteAll()
-//        database.messageFragmentDao().deleteAll()
+
+        // database.messageDao().deleteAll()
+        // database.messageFragmentDao().deleteAll()
 
         // load initial fragment based on mode the app is in
         supportFragmentManager
