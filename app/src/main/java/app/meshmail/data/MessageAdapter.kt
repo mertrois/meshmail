@@ -94,16 +94,20 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         // if there is plain text before the < > section, just use that
         // if none, then extract the address between the < >'s and use that
 
-        val regex = Regex("(?<name>.*)<(?<addr>[^<>]+@[^<>]+)>")
-        val sender = regex.find(message.sender.toString())
-        var senderDisplay = ""
-        if(sender != null) {
-            val name = sender.groups["name"]?.value
-            val addr = sender.groups["addr"]?.value
-            if(name?.trim() == "")
-                senderDisplay = addr!!
-            else
-                senderDisplay = name!!
+        // following email regex from https://regexr.com/2rhq7 -- matches RFC2822 emails
+        val emailRegex = """[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?""".toRegex()
+        val sender = message.sender.toString()
+        val emailMatch: MatchResult? = emailRegex.find(sender)
+        var senderDisplay = ""      // default to show nothing in the worse case if totally unparseable
+        if(emailMatch != null) {    // somehow this didn't contain any email. huh.
+            if(emailMatch.groups.size > 0) {
+                senderDisplay = emailMatch.groups[0]?.value ?: ""    // we're going to default to the username@domain.com
+                val firstAngle = sender.findAnyOf(listOf("<"))
+                if(firstAngle != null) {
+                    val name = sender.substring(0, firstAngle.first).trim()
+                    if(name != "") senderDisplay = name
+                }
+            }
         }
 
         return senderDisplay
