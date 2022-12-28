@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
-import android.widget.Toast
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.MeshmailApplication.Companion.prefs
@@ -12,11 +11,8 @@ import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
 import app.meshmail.data.protobuf.MessageOuterClass
-import app.meshmail.data.protobuf.MessageShadowOuterClass
 import app.meshmail.data.protobuf.MessageShadowOuterClass.MessageShadow
-import app.meshmail.data.protobuf.ProtocolMessageOuterClass
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
-import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
@@ -24,11 +20,10 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import javax.mail.Flags
 import javax.mail.Folder
 import javax.mail.Message
 import javax.mail.Session
-import javax.mail.search.FlagTerm
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 
@@ -138,10 +133,10 @@ class MailSyncService : Service() {
                 pbMessage.fingerprint = msgEnt.fingerprint
 
                 // create the protobuf for the message, the raw data will get put into fragments
-                val pbMessage_bytes: ByteArray = pbMessage.build().toByteArray()
-                msgEnt.protoBufSize = pbMessage_bytes.size
+                val pbMessageBytes: ByteArray = pbMessage.build().toByteArray()
+                msgEnt.protoBufSize = pbMessageBytes.size
                 // todo: calculate the largest max_message_fragment_size can be
-                val nFragments = Math.ceil(pbMessage_bytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
+                val nFragments = ceil(pbMessageBytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
                 msgEnt.nFragments = nFragments
 
 
@@ -151,7 +146,7 @@ class MailSyncService : Service() {
                 // create fragments and put into database
                 for(f in 0 until nFragments) {
                     try {
-                        var messageFragmentEntity = MessageFragmentEntity()
+                        val messageFragmentEntity = MessageFragmentEntity()
                         messageFragmentEntity.fingerprint = pbMessage.fingerprint
                         messageFragmentEntity.n = msgEnt.nFragments
                         messageFragmentEntity.m = f
@@ -161,7 +156,7 @@ class MailSyncService : Service() {
                                 } else {
                                     a + Parameters.MAX_MESSAGE_FRAGMENT_SIZE
                                 }
-                        val d = pbMessage_bytes.sliceArray(a until b)
+                        val d = pbMessageBytes.sliceArray(a until b)
                         messageFragmentEntity.data = d
                         database.messageFragmentDao().insert(messageFragmentEntity)
                     } catch(e: Exception) {
@@ -202,9 +197,9 @@ class MailSyncService : Service() {
         pbMessageShadow.nFragments = message.nFragments!!
         pbProtocolMessage.messageShadow = pbMessageShadow.build()
         // this is ready to send over mesh network to announce a new message has come in
-        val pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
+        val pbProtocolMessageBytes: ByteArray = pbProtocolMessage.build().toByteArray()
         // broadcast the message shadow
-        meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+        meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
         Log.d("MailSyncService","broadcast message shadow: $reason")
     }
 
@@ -232,7 +227,7 @@ class MailSyncService : Service() {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
 
-            inbox.getMessages() // simpler method, gets everything even those that have been seen; use for debugging.
+            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
             // inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)

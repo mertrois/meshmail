@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
-import android.widget.Toast
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.data.MeshmailDatabase
@@ -25,7 +24,7 @@ class MessageFragmentSyncService : Service() {
     private val database: MeshmailDatabase by lazy {
         (application as MeshmailApplication).database
     }
-    private var future: ScheduledFuture<*>? = null;
+    private var future: ScheduledFuture<*>? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -83,7 +82,7 @@ class MessageFragmentSyncService : Service() {
         val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(1)
         // for each shadow message, get a list of missing fragments
         for(message in shadowMessages) {
-            var neededFragments = (0 until message.nFragments!!).toMutableSet()
+            val neededFragments = (0 until message.nFragments!!).toMutableSet()
             val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
             for(fragment in fragments) {
                 neededFragments.remove(fragment.m)
@@ -91,15 +90,15 @@ class MessageFragmentSyncService : Service() {
             // send a fragment request for the first missing one
             if(neededFragments.size > 0) {
                 // todo: enqueue more than just the first one...
-                var pbProtocolMessage = ProtocolMessage.newBuilder()
+                val pbProtocolMessage = ProtocolMessage.newBuilder()
                 pbProtocolMessage.pmtype = ProtocolMessageType.FRAGMENT_REQUEST
-                var pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
+                val pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
                 pbMessageFragmentRequest.m = neededFragments.first()
                 pbMessageFragmentRequest.fingerprint = message.fingerprint
                 pbProtocolMessage.messageFragmentRequest = pbMessageFragmentRequest.build()
-                var pbProtocolMessage_bytes: ByteArray = pbProtocolMessage.build().toByteArray()
+                val pbProtocolMessageBytes: ByteArray = pbProtocolMessage.build().toByteArray()
 
-                meshServiceManager.enqueueForSending(pbProtocolMessage_bytes)
+                meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
             }
         }
     }
