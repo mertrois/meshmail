@@ -1,7 +1,5 @@
 package app.meshmail.data
 
-
-
 import java.text.DateFormat
 import android.view.LayoutInflater
 import android.view.View
@@ -15,9 +13,8 @@ import app.meshmail.R
 import java.util.*
 
 
-
-
-class MessageAdapter(private val onClickListener: OnClickListener) : ListAdapter<MessageEntity, MessageAdapter.ViewHolder>(MessageDiffCallback()) {
+class MessageAdapter(private val onClickListener: OnClickListener) :
+    ListAdapter<MessageEntity, MessageAdapter.ViewHolder>(MessageDiffCallback()) {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val senderTextView: TextView = itemView.findViewById(R.id.sender_text_view)

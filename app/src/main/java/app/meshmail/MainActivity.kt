@@ -88,8 +88,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         setContentView(R.layout.activity_main)
 
         // todo: remove; only for dev. Clean up before running.
-        //database.messageDao().deleteAll()
-        //database.messageFragmentDao().deleteAll()
+//        database.messageDao().deleteAll()
+//        database.messageFragmentDao().deleteAll()
 
         if(prefs?.getBoolean("relay_mode") == false)
             supportFragmentManager
@@ -109,14 +109,16 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             Log.e("MainActivity","Error binding", e)
         }
 
+        /* todo: make all the services run in background, not tied to activity lifecycle
+            to continue syncing mail and/or message fragments and protocol messages
+            while scree off/activity closed, etc.
+         */
         registerReceiver(receiver, intentFilter)
-
         Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
-
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
 
         val appType: String = if(prefs?.getBoolean("relay_mode") == true) "relay" else "client"
-        supportActionBar?.title = "Meshmail ($appType)"
+        supportActionBar?.title = "Meshmail — $appType"
         supportActionBar?.setDisplayHomeAsUpEnabled(true) // displays back arrow if true
         supportActionBar?.setDisplayShowTitleEnabled(true)
         supportActionBar?.elevation = 4.0f

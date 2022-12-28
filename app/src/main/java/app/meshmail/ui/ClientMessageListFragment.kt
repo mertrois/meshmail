@@ -17,43 +17,36 @@ import androidx.recyclerview.widget.RecyclerView
 import app.meshmail.R
 import app.meshmail.data.MessageAdapter
 import app.meshmail.data.MessageEntity
+import com.google.android.material.tabs.TabLayout
 
 class ClientMessageListFragment : Fragment() {
     private lateinit var app: Application
     private lateinit var messagesRecyclerView: RecyclerView
     private lateinit var messageAdapter: MessageAdapter
     private lateinit var messagesLayoutManager: RecyclerView.LayoutManager
+    private lateinit var tabLayout: TabLayout
+    private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
+        ClientMessagesListViewModelFactory(app)
+    }
+    private val folders: ArrayList<String> = arrayListOf("INBOX","ARCHIVE","TRASH")
 
+    private val tabSelectedListener = object: TabLayout.OnTabSelectedListener {
+        override fun onTabSelected(tab: TabLayout.Tab?) {
+            if(tab != null) {
+                clientMessagesListViewModel.setCurrentFolder(folders[tab.position])
+            }
+        }
 
+        override fun onTabUnselected(tab: TabLayout.Tab?) {
+            return Unit
+        }
 
-//    val itemTouchHandler = object: RecyclerView.OnItemTouchListener {
-//        override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
-//            return false
-//        }
-//
-//        override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
-//            if(e.action == MotionEvent.ACTION_UP) {
-//                val view = messagesRecyclerView.findChildViewUnder(e.x, e.y)
-//                if (view != null) {
-//                    val viewHolder = messagesRecyclerView.getChildViewHolder(view)
-//                    val message: MessageEntity =
-//                        messageAtPosition(viewHolder.absoluteAdapterPosition)
-//                    Toast.makeText(app, message.body, Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//        }
-//
-//        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-//        }
-//    }
-
-    fun messageAtPosition(position: Int): MessageEntity {
-        val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
-        val message: MessageEntity = list.get(position)!!
-        return message
+        override fun onTabReselected(tab: TabLayout.Tab?) {
+            return Unit
+        }
     }
 
-    val itemTouchHelperCallback = object: ItemTouchHelper.Callback() {
+    private val itemTouchHelperCallback = object: ItemTouchHelper.Callback() {
         override fun getMovementFlags(
             recyclerView: RecyclerView,
             viewHolder: RecyclerView.ViewHolder
@@ -73,19 +66,18 @@ class ClientMessageListFragment : Fragment() {
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
             val position = viewHolder.absoluteAdapterPosition
-
-            messageAdapter.notifyItemRemoved(position)
-
             val message: MessageEntity = messageAtPosition(position)
+            messageAdapter.notifyItemRemoved(position)
             message?.folder = "ARCHIVE"
             clientMessagesListViewModel.database.messageDao().update(message)
-
         }
 
     }
 
-    private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
-        ClientMessagesListViewModelFactory(app)
+
+    fun messageAtPosition(position: Int): MessageEntity {
+        val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
+        return list[position]
     }
 
     override fun onAttach(context: Context) {
@@ -100,6 +92,12 @@ class ClientMessageListFragment : Fragment() {
     ): View? {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.messages_fragment, container, false)
+        tabLayout = view.findViewById(R.id.folders_tab_layout)
+
+        tabLayout.addOnTabSelectedListener(tabSelectedListener)
+
+        val inboxTab = tabLayout.getTabAt(0)
+        tabLayout.selectTab(inboxTab)
 
         // Initialize the RecyclerView and adapter
         messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
@@ -108,23 +106,17 @@ class ClientMessageListFragment : Fragment() {
         })
         messagesLayoutManager = LinearLayoutManager(context)
 
-
-
-
         // Set the adapter and layout manager for the RecyclerView
         messagesRecyclerView.adapter = messageAdapter
         messagesRecyclerView.layoutManager = messagesLayoutManager
 
+        // push updates in the DB to the adaptor
         clientMessagesListViewModel.messagesList.observe(viewLifecycleOwner, Observer {
             messages -> messageAdapter.submitList(messages)
         })
 
-        // setup the listener for tap events
-        //messagesRecyclerView.addOnItemTouchListener(itemTouchHandler)
         // setup the listener for swipe events
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(messagesRecyclerView)
-
-
 
         return view
     }
