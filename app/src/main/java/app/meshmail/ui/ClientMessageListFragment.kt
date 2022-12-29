@@ -25,7 +25,14 @@ class ClientMessageListFragment : Fragment() {
     private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
         ClientMessagesListViewModelFactory(app)
     }
-    private val folders: ArrayList<String> = arrayListOf("ARCHIVE","INBOX","TRASH")
+
+    companion object {
+        val folders: ArrayList<String> = arrayListOf("ARCHIVE", "INBOX", "TRASH")
+        val FOLDER_ARCHIVE = 0
+        val FOLDER_INBOX = 1
+        val FOLDER_TRASH = 2
+    }
+
     private lateinit var trashMenuItem: MenuItem
 
     /*
@@ -59,9 +66,9 @@ class ClientMessageListFragment : Fragment() {
         ): Int {
 
             val swipeFlags = when(tabLayout.selectedTabPosition) {
-                0 -> ItemTouchHelper.RIGHT                              // inbox
-                1 -> ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT      // archive
-                2 -> ItemTouchHelper.LEFT                               // trash
+                0 -> ItemTouchHelper.RIGHT
+                1 -> ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                2 -> ItemTouchHelper.LEFT
                 else -> 0
             }
             return makeMovementFlags(0, swipeFlags)
@@ -99,6 +106,7 @@ class ClientMessageListFragment : Fragment() {
     public interface FragmentRequestListener {
         fun loadMessageFragment(message: MessageEntity)
     }
+
     var requestListener: FragmentRequestListener? = null
 
     fun emptyTrash() {
@@ -139,7 +147,7 @@ class ClientMessageListFragment : Fragment() {
         setHasOptionsMenu(true)
 
         // Inflate the layout for this fragment
-        val view = inflater.inflate(R.layout.messages_fragment, container, false)
+        val view = inflater.inflate(R.layout.fragment_messages, container, false)
         tabLayout = view.findViewById(R.id.folders_tab_layout)
 
         tabLayout.addOnTabSelectedListener(tabSelectedListener)

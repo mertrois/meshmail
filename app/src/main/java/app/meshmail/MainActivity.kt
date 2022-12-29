@@ -8,8 +8,6 @@ import com.geeksville.mesh.IMeshService
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Toast
-import androidx.appcompat.app.ActionBar
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -22,6 +20,7 @@ import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
 import app.meshmail.ui.ClientMessageListFragment
+import app.meshmail.ui.MessageFragment
 import app.meshmail.ui.PreferenceFragment
 import app.meshmail.ui.StatusRelayFragment
 
@@ -72,7 +71,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     .commit()
                 return true
             }
-            R.id.empty_trash -> {
+            R.id.empty_trash -> { // todo: move this into the messages fragment
                 // get a reference to the current fragment
                 val currentFragment: Fragment? = supportFragmentManager.findFragmentById(R.id.fragment_container)
                 // see if non null, and is of the correct type

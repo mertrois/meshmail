@@ -3,5 +3,6 @@
 
     <item
         android:id="@+id/empty_trash"
+        android:icon="@drawable/delete_24px"
         android:title="Empty Trash" />
 </menu>

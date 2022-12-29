@@ -17,7 +17,8 @@
         <activity
             android:name="app.meshmail.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light">
+            android:theme="@style/Theme.Meshmail"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

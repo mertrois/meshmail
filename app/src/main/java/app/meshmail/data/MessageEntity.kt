@@ -56,4 +56,6 @@ data class MessageEntity(
     var nFragments: Int? = null,
 
     var protoBufSize: Int? = null,
+
+
 )

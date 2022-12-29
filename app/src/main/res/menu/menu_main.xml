@@ -4,6 +4,7 @@
     tools:context="app.meshmail.MainActivity">
     <item
         android:id="@+id/action_settings"
+        android:icon="@drawable/settings_24px"
         android:orderInCategory="100"
         android:title="@string/action_settings"
         app:showAsAction="never" />

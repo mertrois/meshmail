@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:title="ARCHIVE"
+        android:id="@+id/move_to_archive"
+        android:icon="@drawable/archive_24px"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:title="INBOX"
+        android:id="@+id/move_to_inbox"
+        android:icon="@drawable/inbox_48px"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:title="TRASH"
+        android:id="@+id/move_to_trash"
+        android:icon="@drawable/delete_24px"
+        app:showAsAction="ifRoom" />
+
+
+
+
+</menu>

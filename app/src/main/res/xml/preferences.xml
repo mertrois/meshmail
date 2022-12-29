@@ -6,61 +6,76 @@
         <SwitchPreference
             android:defaultValue="false"
             android:key="relay_mode"
-            android:title="Relay mode" />
+            android:title="Relay mode"
+            app:icon="@drawable/sync_24px"
+            android:summaryOff="This device is a client, connected only to the mesh network"
+            android:summaryOn="This device is a relay, connected to the internet and mesh network"/>
     </PreferenceCategory>
-    <PreferenceCategory android:title="IMAP Server">
+    <PreferenceCategory
+        android:key="imap_preference_category"
+        android:title="IMAP Server">
         <EditTextPreference
             android:defaultValue="imap.domain.com"
             android:key="imap_server"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Host" />
+            android:title="Host"
+            app:icon="@drawable/dns_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:defaultValue="993"
             android:key="imap_server_port"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Port" />
+            android:title="Port"
+            app:icon="@drawable/pin_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:key="imap_username"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Username" />
+            android:title="Username"
+            app:icon="@drawable/account_circle_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:key="imap_password"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Password" />
+            android:title="Password"
+            app:icon="@drawable/password_24px" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="SMTP Server">
+    <PreferenceCategory
+        android:key="smtp_preference_category"
+        android:title="SMTP Server">
         <EditTextPreference
             android:defaultValue="smtp.domain.com"
             android:key="smtp_server"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Host" />
+            android:title="Host"
+            app:icon="@drawable/dns_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:defaultValue="993"
             android:key="smtp_server_port"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Port" />
+            android:title="Port"
+            app:icon="@drawable/pin_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:key="smtp_username"
             android:selectAllOnFocus="true"
-            app:useSimpleSummaryProvider="true"
             android:singleLine="true"
-            android:title="Username" />
+            android:title="Username"
+            app:icon="@drawable/account_circle_24px"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             android:key="smtp_password"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Password" />
+            android:title="Password"
+            app:icon="@drawable/password_24px" />
     </PreferenceCategory>
 
 </PreferenceScreen>
