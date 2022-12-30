@@ -1,6 +1,5 @@
 package app.meshmail.ui
 
-import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.view.*
@@ -11,13 +10,16 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import app.meshmail.MainActivity
+import app.meshmail.MeshmailApplication
 import app.meshmail.R
 import app.meshmail.data.MessageAdapter
 import app.meshmail.data.MessageEntity
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
 
 class ClientMessageListFragment : Fragment() {
-    private lateinit var app: Application
+    private lateinit var app: MeshmailApplication
     private lateinit var messagesRecyclerView: RecyclerView
     private lateinit var messageAdapter: MessageAdapter
     private lateinit var messagesLayoutManager: RecyclerView.LayoutManager
@@ -25,6 +27,7 @@ class ClientMessageListFragment : Fragment() {
     private val clientMessagesListViewModel by viewModels<ClientMessagesListViewModel> {
         ClientMessagesListViewModelFactory(app)
     }
+    private lateinit var composeFAB: FloatingActionButton
 
     companion object {
         val folders: ArrayList<String> = arrayListOf("ARCHIVE", "INBOX", "TRASH")
@@ -104,7 +107,11 @@ class ClientMessageListFragment : Fragment() {
     }
 
     public interface FragmentRequestListener {
-        fun loadMessageFragment(message: MessageEntity)
+        companion object {
+            val MODE_VIEW: Int = 0
+            val MODE_EDIT: Int = 1
+        }
+        fun loadMessageFragment(message: MessageEntity, mode: Int)
     }
 
     var requestListener: FragmentRequestListener? = null
@@ -120,7 +127,7 @@ class ClientMessageListFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        app = requireActivity().application
+        app = requireActivity().application as MeshmailApplication
         if(context is FragmentRequestListener) {
             requestListener = context
         } else {
@@ -128,8 +135,8 @@ class ClientMessageListFragment : Fragment() {
         }
     }
 
-    fun loadMessage(message: MessageEntity) {
-        requestListener?.loadMessageFragment(message)
+    private fun loadMessage(message: MessageEntity, mode: Int) {
+        requestListener?.loadMessageFragment(message, mode)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -175,7 +182,7 @@ class ClientMessageListFragment : Fragment() {
                 viewHolder.setTypeface(bold = false)
             }
             clientMessagesListViewModel.markMessageRead(message)
-            loadMessage(message)
+            loadMessage(message, FragmentRequestListener.MODE_VIEW)
         })
         messagesLayoutManager = LinearLayoutManager(context)
 
@@ -190,6 +197,13 @@ class ClientMessageListFragment : Fragment() {
 
         // setup the listener for swipe events
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(messagesRecyclerView)
+
+        // setup the compose fab
+        composeFAB = view.findViewById(R.id.fab_compose)
+        composeFAB.setOnClickListener {
+            val message: MessageEntity = MessageEntity(folder="DRAFTS")
+            loadMessage(message, FragmentRequestListener.MODE_EDIT)
+        }
 
         return view
     }

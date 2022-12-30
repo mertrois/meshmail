@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="Meshmail">
+    <PreferenceCategory android:title="Meshmail Mode">
 
         <SwitchPreference
             android:defaultValue="false"
@@ -11,6 +11,28 @@
             android:summaryOff="This device is a client, connected only to the mesh network"
             android:summaryOn="This device is a relay, connected to the internet and mesh network"/>
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="identity_preference_category"
+        android:title="Sender Identity">
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="sender_name"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Sender Name"
+            app:icon="@drawable/account_circle_24px"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="sender_email"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Sender Email"
+            app:icon="@drawable/alternate_email_24px"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
     <PreferenceCategory
         android:key="imap_preference_category"
         android:title="IMAP Server">

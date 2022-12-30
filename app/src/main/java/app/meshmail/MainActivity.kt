@@ -19,10 +19,7 @@ import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
-import app.meshmail.ui.ClientMessageListFragment
-import app.meshmail.ui.MessageFragment
-import app.meshmail.ui.PreferenceFragment
-import app.meshmail.ui.StatusRelayFragment
+import app.meshmail.ui.*
 
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, ClientMessageListFragment.FragmentRequestListener {
@@ -94,13 +91,20 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         }
     }
 
-    override fun loadMessageFragment(message: MessageEntity) {
+    override fun loadMessageFragment(message: MessageEntity, mode: Int) {
+        val fragment: Fragment = if(mode == ClientMessageListFragment.FragmentRequestListener.MODE_VIEW)
+            ViewMessageFragment(message)
+        else if(mode == ClientMessageListFragment.FragmentRequestListener.MODE_EDIT)
+            EditMessageFragment(message)
+        else
+            throw RuntimeException("Illegal argument to loadMessageFragment")
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.fragment_container, MessageFragment(message))
+            .replace(R.id.fragment_container, fragment)
             .addToBackStack("main")
             .commit()
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

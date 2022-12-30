@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/edit_message_linear_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/message_from_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="From"
+                android:inputType="textEmailAddress"
+                android:textColorHint="@color/editTextHint" />
+
+            <EditText
+                android:id="@+id/message_to_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="To"
+                android:inputType="textEmailAddress"
+                android:textColorHint="@color/editTextHint" />
+
+            <EditText
+                android:id="@+id/message_subject_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Subject"
+                android:inputType="textAutoComplete"
+                android:textColorHint="@color/editTextHint" />
+
+            <EditText
+                android:id="@+id/message_body_field"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@null"
+                android:contextClickable="true"
+                android:cursorVisible="true"
+                android:paddingHorizontal="2dp"
+                android:focusedByDefault="true"
+                android:freezesText="true"
+                android:gravity="start|left"
+                android:inputType="textMultiLine|textAutoComplete"
+                android:maxLines="100000"
+                android:minLines="1" />
+
+        </LinearLayout>
+    </ScrollView>
+
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabSend"
+        style="?attr/floatingActionButtonLargeStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:clickable="true"
+        android:contentDescription="send message"
+        android:src="@drawable/send_48px" />
+
+
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+

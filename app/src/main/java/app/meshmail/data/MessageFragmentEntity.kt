@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /*
-    MessageFragment contains m of n byte arrays which are pieces of the protobuf.
+    ViewMessageFragment contains m of n byte arrays which are pieces of the protobuf.
  */
 @Entity(tableName = "message_fragments")
 data class MessageFragmentEntity(
