@@ -2,6 +2,7 @@ package app.meshmail.ui
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -17,6 +18,8 @@ import app.meshmail.data.MessageAdapter
 import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
+import app.meshmail.MeshmailApplication.Companion.prefs
+
 
 class ClientMessageListFragment : Fragment() {
     private lateinit var app: MeshmailApplication
@@ -41,12 +44,6 @@ class ClientMessageListFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.empty_trash -> {
-                // get a reference to the current fragment
-//                val currentFragment: Fragment? = supportFragmentManager.findFragmentById(R.id.fragment_container)
-//                // see if non null, and is of the correct type
-//                if((currentFragment != null) && (currentFragment is ClientMessageListFragment)) {
-//                    (currentFragment as ClientMessageListFragment).emptyTrash()
-//                }
                 emptyTrash()
                 return true
             }
@@ -63,8 +60,10 @@ class ClientMessageListFragment : Fragment() {
         override fun onTabSelected(tab: TabLayout.Tab?) {
             if(tab != null) {
                 clientMessagesListViewModel.setCurrentFolder(folders[tab.position])
+                // save to prefs because savedinstacestate doesn't work with stack
+                prefs?.putInt("selectedTabPosition", tab.position)
+                Log.d("ClientMessageListFragment","tab position is now ${tab.position}")
             }
-            // now reconfigure the swipe left/right actions based on current tab
         }
 
         override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -73,7 +72,8 @@ class ClientMessageListFragment : Fragment() {
 
         override fun onTabReselected(tab: TabLayout.Tab?) {
             // tap the tab to scroll to the top
-            messagesRecyclerView.scrollToPosition(0)
+            if(messagesRecyclerView != null)
+                messagesRecyclerView.scrollToPosition(0)
         }
     }
 
@@ -166,33 +166,34 @@ class ClientMessageListFragment : Fragment() {
     }
 
 
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        super.onCreate(savedInstanceState)
+        super.onCreateView(inflater, container, savedInstanceState)
         setHasOptionsMenu(true)
 
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_messages, container, false)
         tabLayout = view.findViewById(R.id.folders_tab_layout)
-
         tabLayout.addOnTabSelectedListener(tabSelectedListener)
+
+        // Initialize the RecyclerView and adapter
+        messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
 
         // set the tab names according to our folders defined above
         for(i in 0 until tabLayout.tabCount) {
             tabLayout.getTabAt(i)?.text = folders[i]
         }
 
-        val startingFolder = 1  // todo: get this from saved fragment state
+
+        val startingFolder = prefs?.getInt("selectedTabPosition", 1)!!
         // select starting tab
         tabLayout.selectTab(tabLayout.getTabAt(startingFolder))
         // set current folder to correspond
         clientMessagesListViewModel.setCurrentFolder(folders[startingFolder])
-
-        // Initialize the RecyclerView and adapter
-        messagesRecyclerView = view.findViewById(R.id.messages_recycler_view)
 
         // set the handler for a message being tapped (open new fragment)
         messageAdapter = MessageAdapter(MessageAdapter.OnClickListener { message ->
@@ -228,6 +229,7 @@ class ClientMessageListFragment : Fragment() {
 
         return view
     }
+
 
 
 }

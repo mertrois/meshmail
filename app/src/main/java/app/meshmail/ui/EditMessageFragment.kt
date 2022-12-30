@@ -41,8 +41,12 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
         fromField.setText("$senderName <$senderEmail>")
         fromField.isEnabled = false
 
+        // new to: is the old recipient
         toField.setText(message.recipient)
-        subjectField.setText("Re: ${message.subject}")
+
+        var subj = if(isReply()) "Re: " else ""
+        subjectField.setText(subj + message.subject)
+
         bodyField.setText(message.body)
         formatBodyForReply()
 
@@ -56,13 +60,20 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
     }
 
     private fun formatBodyForReply() {
-        bodyField.setText("""
+        // only reformat if it's a reply
+        if(isReply()) {
+            bodyField.setText("""
 
 
 ===== On ${message.receivedDate} ${message.recipient} wrote: =====
-
+    
 ${message.body}
-        """)
+            """)
+        }
+    }
+
+    private fun isReply(): Boolean {
+        return message.serverId != ""
     }
 
     override fun onAttach(context: Context) {
