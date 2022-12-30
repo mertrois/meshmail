@@ -38,6 +38,24 @@ class ClientMessageListFragment : Fragment() {
 
     private lateinit var trashMenuItem: MenuItem
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.empty_trash -> {
+                // get a reference to the current fragment
+//                val currentFragment: Fragment? = supportFragmentManager.findFragmentById(R.id.fragment_container)
+//                // see if non null, and is of the correct type
+//                if((currentFragment != null) && (currentFragment is ClientMessageListFragment)) {
+//                    (currentFragment as ClientMessageListFragment).emptyTrash()
+//                }
+                emptyTrash()
+                return true
+            }
+        }
+        return false
+    }
+
+
+
     /*
         Listener to handle tabs; letting viewModel respond to tab changes
      */
@@ -116,8 +134,11 @@ class ClientMessageListFragment : Fragment() {
 
     var requestListener: FragmentRequestListener? = null
 
-    fun emptyTrash() {
-        Toast.makeText(app, "emptying trash", Toast.LENGTH_SHORT).show()
+    private fun emptyTrash() {
+        for(m in app.database.messageDao().getMessagesByFolder("TRASH")) {
+            app.database.messageFragmentDao().deleteByFingerprint(m.fingerprint)
+            app.database.messageDao().delete(m)
+        }
     }
 
     fun messageAtPosition(position: Int): MessageEntity {

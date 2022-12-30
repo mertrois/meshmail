@@ -68,15 +68,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     .commit()
                 return true
             }
-            R.id.empty_trash -> { // todo: move this into the messages fragment
-                // get a reference to the current fragment
-                val currentFragment: Fragment? = supportFragmentManager.findFragmentById(R.id.fragment_container)
-                // see if non null, and is of the correct type
-                if((currentFragment != null) && (currentFragment is ClientMessageListFragment)) {
-                    (currentFragment as ClientMessageListFragment).emptyTrash()
-                }
-                return true
-            }
+
             android.R.id.home -> {
                 return if(supportFragmentManager.backStackEntryCount == 0) {
                     finish()

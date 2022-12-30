@@ -27,4 +27,7 @@ interface MessageFragmentDao {
 
     @Query("delete from message_fragments")
     fun deleteAll()
+
+    @Query("delete from message_fragments where fingerprint = :fingerprint")
+    fun deleteByFingerprint(fingerprint: String)
 }

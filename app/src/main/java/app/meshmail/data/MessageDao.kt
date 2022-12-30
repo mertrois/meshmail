@@ -25,6 +25,9 @@ interface MessageDao {
     @Query("select * from messages where isShadow = 0 and folder = 'INBOX'")
     fun getInboxMessagesLive(): LiveData<List<MessageEntity>>
 
+    @Query("select * from messages where folder = :folder")
+    fun getMessagesByFolder(folder: String): List<MessageEntity>
+
     @Query("select * from messages where isShadow = 0 and folder = :folder order by receivedDate DESC")
     fun getMessagesByFolderLive(folder: String): LiveData<List<MessageEntity>>
 
@@ -48,6 +51,9 @@ interface MessageDao {
 
     @Delete
     fun delete(messageEntity: MessageEntity)
+
+    @Query("DELETE from messages where folder = :folder")
+    fun deleteMessagesByFolder(folder: String)
 
     @Query("delete from messages")
     fun deleteAll()
