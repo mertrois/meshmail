@@ -17,7 +17,6 @@ import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
-import org.osgeo.proj4j.parser.Proj4Keyword.f
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -25,6 +24,7 @@ import java.util.concurrent.TimeUnit
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
+import javax.mail.search.FlagTerm
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
@@ -109,10 +109,46 @@ class MailSyncService : Service() {
     private fun sendMessageViaSMTP(message: MessageEntity) {
         // todo: actually send via smtp
         Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
-        sendEmail()
-        message.hasBeenSent = true
-        database.messageDao().update(message)
+
+        val senderName = prefs?.getString("sender_name")
+        val senderEmail = prefs?.getString("sender_email")
+
+        val smtpUsername = prefs?.getString("smtp_username","")
+        val smtpPassword = prefs?.getString("smtp_password","")
+        val properties = getMailProperties()
+
+        val auth: Authenticator = object : Authenticator() {
+            override fun getPasswordAuthentication(): PasswordAuthentication {
+                return PasswordAuthentication(smtpUsername, smtpPassword)
+            }
+        }
+
+        val session = Session.getInstance(properties, auth)
+
+        try {
+            val email = MimeMessage(session)
+
+            email.setFrom(InternetAddress(senderEmail, senderName))
+            email.addRecipient(Message.RecipientType.TO, InternetAddress(message.recipient))
+            email.subject = message.subject
+            email.setText(message.body)
+
+            Transport.send(email)
+            Log.d("MailSyncService","mail sent successfully")
+            message.hasBeenSent = true
+            database.messageDao().update(message)
+        } catch (e: MessagingException) {
+            Log.e("MailSyncService","Message failed to send", e)
+            // todo: update the message in the db to indicate there was a problem; sort by types
+            // if it was, for example server not reachable, we want to try again later...
+            // if malformed address, send message back to client over mesh
+            // if bad server address... pop up a toast or add to error log on status screen?
+            // ...
+        }
+
     }
+
+
 
     private fun handleOutboxMessages() {
         // get a list of messages that user wishes to send
@@ -274,46 +310,35 @@ class MailSyncService : Service() {
     private fun getMailProperties(): Properties {
         // rebuild each time in case properties change to avoid restart program.
         val properties = Properties().apply {
+
+            // IMAP Properties
             put("mail.imap.ssl.enable", "true")
-            put("mail.smtp.ssl.enable", "true")
             put("mail.imap.starttls.enable", "true")
-            put("mail.smtp.starttls.enable", "true")
             put("mail.imaps.host", prefs?.getString("imap_server",""))
-            put("mail.smtps.host", prefs?.getString("smtp_server",""))
             put("mail.imaps.port", prefs?.getString("imap_server_port","0")?.toInt())
-            put("mail.smtps.port", prefs?.getString("smtp_server_port","0")?.toInt())
+
+
+            // TLS
+//            put("mail.smtp.host",  prefs?.getString("smtp_server",""))
+//            put("mail.smtp.port",  prefs?.getString("smtp_server_port","0")?.toInt())
+//            put("mail.smtp.auth", "true")
+//            put("mail.smtp.starttls.enable", "true")
+
+
+            // props for SSL Email
+            put("mail.smtp.host",  prefs?.getString("smtp_server",""))
+            put("mail.smtp.socketFactory.port", prefs?.getString("smtp_server_port","0")?.toInt())
+            put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
+            put("mail.smtp.auth", "true")
+            put("mail.smtp.port",  prefs?.getString("smtp_server_port","0")?.toInt())
+
+
         }
 
         return properties
     }
 
-    private fun sendEmail() {
-        val smtpUsername = prefs?.getString("smtp_username","")
-        val smtpPassword = prefs?.getString("smtp_password","")
-        val properties = getMailProperties()
-        val session = Session.getInstance(properties, object : Authenticator() {
-            override fun getPasswordAuthentication(): PasswordAuthentication {
-                return PasswordAuthentication(smtpUsername, smtpPassword)
-            }
-        })
 
-        try {
-            val message = MimeMessage(session)
-
-            message.setFrom(InternetAddress("Testy <test@meshmail.app>"))
-
-            message.addRecipient(Message.RecipientType.TO, InternetAddress("lukerl@gmail.com"))
-
-            message.subject = "this is a programmatic test"
-
-            message.setText("wang chung dong")
-
-            Transport.send(message)
-            Log.d("MailSyncService","mail sent successfully")
-        } catch (e: MessagingException) {
-            Log.e("MailSyncService","Message failed to send", e)
-        }
-    }
 
     private fun getEmails(): Array<Message>? {
         val imapUsername = prefs?.getString("imap_username","")
@@ -328,8 +353,8 @@ class MailSyncService : Service() {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
 
-            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
-            // inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
+            //inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
+            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
             null

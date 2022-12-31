@@ -49,11 +49,7 @@ class PreferenceFragment : PreferenceFragmentCompat() {
         val idPreferenceCategory = findPreference<PreferenceCategory>("identity_preference_category")
         imapPreferenceCategory?.isEnabled = isEnabled
         smtpPreferenceCategory?.isEnabled = isEnabled
-
-        // need to think more about the UX here. Should really be part of SMTP settings because it has to
-        // match the account that's sending. But sender will want to know/be reminded/be able to set how
-        // it's going out as well. But enabling both client/relay to set creates confusion.
-        idPreferenceCategory?.isEnabled = !isEnabled
+        idPreferenceCategory?.isEnabled = isEnabled
     }
 
 }
