@@ -31,23 +31,6 @@ data class MessageEntity(
     // a shadow message is a teaser, or a partial message; true until data fields fully populated
     var isShadow: Boolean = true,
 
-    // has a client requested any fragment of this message yet? if not, we need to broadcast
-    // a message shadow object to alert clients.
-    var hasBeenRequested: Boolean = false,
-
-    // INBOX, ARCHIVE, TRASH for the client; if it's the relay, undefined.
-    var folder: String = "",
-
-    // origin is either "INBOUND" meaning it came from imap/pop, was created on relay device first, syncd to
-    // client device second. Or "OUTBOUND" meaning it originated on client, was sync'd to relay and sent
-    var type: String = "INBOUND",
-
-    // whether or not an outbound message has been sent over SMTP successfully via the relay.
-    var hasBeenSent: Boolean = false,
-
-    // to control bold typeface in list
-    var hasBeenRead: Boolean = false,
-
     // perhaps a shorter version of serverID, but deterministic. e.g. last 8 bytes of md5
     // mostly to save space & not have to send across full serverID. Maybe MD5 of the concatenated protobuf
     // TODO: enforce a unique constraint here
@@ -57,5 +40,29 @@ data class MessageEntity(
 
     var protoBufSize: Int? = null,
 
+    // has a client requested any fragment of this message yet? if not, we need to continue to broadcast
+    // message shadow objects to alert clients to start requesting this.
+    var hasBeenRequested: Boolean = false,
+
+    // origin is either "INBOUND" meaning it came from imap/pop, was created on relay device first, syncd to
+    // client device second. Or "OUTBOUND" meaning it originated on client, was sync'd to relay and sent
+    var type: String = "",
+
+    // whether or not an outbound message has been sent over SMTP successfully via the relay.
+    var hasBeenSent: Boolean = false,
+
+    ///////////////////////
+    /// Client- only fields
+    ///////////////////////
+
+    // to control bold typeface in list--client use only
+    var hasBeenRead: Boolean = false,
+
+    // INBOX, ARCHIVE, TRASH for the client; if it's the relay, undefined.
+    // Outbound sequence: DRAFT (editing in client) >
+    //      OUTBOX (waiting for sync service to pick up) >
+    //      SENT (ready to serve fragment requests)
+    // Inbound INBOX -> [ ARCHIVE | TRASH ] ; TRASH -> permanent deletion
+    var folder: String = "",
 
 )

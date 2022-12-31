@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import android.widget.Toast
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.MeshmailApplication.Companion.prefs
@@ -16,13 +17,14 @@ import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import org.osgeo.proj4j.parser.Proj4Keyword.f
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import javax.mail.Folder
-import javax.mail.Message
-import javax.mail.Session
+import javax.mail.*
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeMessage
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
@@ -62,7 +64,6 @@ class MailSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        //Toast.makeText(this, "mail sync service starting", Toast.LENGTH_SHORT).show()
         return START_STICKY
     }
 
@@ -75,109 +76,176 @@ class MailSyncService : Service() {
         return null
     }
 
-
     private fun syncMail() {
 
         if(prefs?.getBoolean("relay_mode", false)!!) {
-            // get newly arrive messages
-            val emails: Array<Message>? = getEmails()
+            // get newly arrived messages
+            val emails: Array<Message>? = getEmails() // todo: only pull unseen messages
             Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
             // store them
-            if (emails != null) storeMessages(emails)
+            if (emails != null)
+                storeMessages(emails)
 
-            // todo: get a list of messages of type OUTBOUND, hasBeenSent=false and attempt to send them via SMTP
+            val sendableMessages = database.messageDao().getMessagesReadyToSend()
+            for(message in sendableMessages) {
+                sendMessageViaSMTP(message)
+            }
+        } else {    // client
+            /*
+                find messages in the outbox, fragment them so that the daemon will start sending shadows
+                todo: make this a live query so process happens instantaneously
+             */
+            Log.d(this.javaClass.name, "client checking for messages in outbox...")
+            handleOutboxMessages()
         }
 
         /*
-        Here we will look for messages with haveBeenRequested=false and send out shadows, no matter if this is client
-        or relay.
+            Here we will look for messages with haveBeenRequested=false and send out shadows,
+            whether client or relay.
          */
         broadcastNecessaryMessageShadows()
     }
 
-    private fun createOutboundEmail(subject: String, recipient: String, sender: String, body: String) {
-        // todo: create a MessageEntity of type= OUTBOUND, make the necessary fragments; broadcast shadow
-        // todo: factor out code from storeMessages that creates fragments and entity. creating an outbound email
-        // should start by creating a javamail message object and passing that in for the sake of code reuse.
+    private fun sendMessageViaSMTP(message: MessageEntity) {
+        // todo: actually send via smtp
+        Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
+        sendEmail()
+        message.hasBeenSent = true
+        database.messageDao().update(message)
     }
 
+    private fun handleOutboxMessages() {
+        // get a list of messages that user wishes to send
+        val outboxMessages: List<MessageEntity> = database.messageDao().getMessagesByFolder("OUTBOX")
+        for(msg in outboxMessages) {
+            val fragmentList = getFragmentsForMessage(msg)
+            msg.folder = "SENT"             // this indicates we have made the fragments and ready to broadcast a shadow
+            msg.type = "OUTBOUND"           // repeating for clarity
+            msg.hasBeenRequested = false    // this will indicate to mailsyncservice that the other end (relay) hasn't requested a fragment yet.
+            msg.nFragments = fragmentList.count()
+            storeMessageAndFragments(msg, fragmentList)
+            // finally broadcast the existence of this message to the network
+            broadcastMessageShadow(msg, "initial")
+        }
+    }
+
+
+    /*
+
+        Take a list of javamail messages and store them as MessageEntity, including generating their fragments
+        to be sync'd
+
+     */
     private fun storeMessages(messages: Array<Message>) {
         for (msg in messages) {
             val mid: String = msg.getHeader("Message-ID")[0]
             if(database.messageDao().getByServerId(mid) == null) {  // this message is not in the database
-                //todo: ensure this entire sequence is atomic
-
+                // so we'll add it.
                 Log.d(this.javaClass.name, "message not found in db, adding it now")
-                val msgEnt = MessageEntity()
-                msgEnt.subject = msg.subject
-                msgEnt.body = extractReadableBody(msg)
-                msgEnt.recipient = msg.allRecipients[0].toString()
-                msgEnt.sender = msg.from[0].toString()
-                msgEnt.serverId = mid
-                msgEnt.receivedDate = msg.receivedDate
-                msgEnt.hasBeenRequested = false
-                msgEnt.isShadow = false
-                msgEnt.type = "INBOUND"
-                msgEnt.hasBeenSent = false
-                msgEnt.fingerprint = md5(msgEnt.serverId + msgEnt.body).toHex().substring(0,8)
-
-                // now we build the protobuf version of the message
-                // todo: clean this up with a builder to simply copying values over
-                val pbMessage = MessageOuterClass.Message.newBuilder()
-                pbMessage.subject = msgEnt.subject
-                pbMessage.body = msgEnt.body    // TODO: maybe perform LZ compression here if needed
-                pbMessage.recipient = msgEnt.recipient
-                pbMessage.sender = msgEnt.sender
-                pbMessage.serverId = msgEnt.serverId
-                pbMessage.receivedDate = dateToMillis(msgEnt.receivedDate!!)
-                pbMessage.fingerprint = msgEnt.fingerprint
-
-                // create the protobuf for the message, the raw data will get put into fragments
-                val pbMessageBytes: ByteArray = pbMessage.build().toByteArray()
-                msgEnt.protoBufSize = pbMessageBytes.size
-                // todo: calculate the largest max_message_fragment_size can be
-                val nFragments = ceil(pbMessageBytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
-                msgEnt.nFragments = nFragments
-
-
-                // but first, we need to populate the database with the fragments so they're ready to be served
-                // when requested
-
-                // create fragments and put into database
-                for(f in 0 until nFragments) {
-                    try {
-                        val messageFragmentEntity = MessageFragmentEntity()
-                        messageFragmentEntity.fingerprint = pbMessage.fingerprint
-                        messageFragmentEntity.n = msgEnt.nFragments
-                        messageFragmentEntity.m = f
-                        val a = f * Parameters.MAX_MESSAGE_FRAGMENT_SIZE
-                        val b = if(f == nFragments-1) {
-                                    msgEnt.protoBufSize!! // the last one should be the last byte of the full protobuf, not the hypothetical fragment size * n
-                                } else {
-                                    a + Parameters.MAX_MESSAGE_FRAGMENT_SIZE
-                                }
-                        val d = pbMessageBytes.sliceArray(a until b)
-                        messageFragmentEntity.data = d
-                        database.messageFragmentDao().insert(messageFragmentEntity)
-                    } catch(e: Exception) {
-                        Log.e("MailSyncService","error creating fragment",e)
-                    }
-                }
-
-                // put whole message in database. needs to go after fragments for future use of live data to trigger
-                // sending a shadow.
-                database.messageDao().insert(msgEnt)
-
+                // convert the javamail message to MessageEntity for the local database
+                val msgEnt = javamailMessageToMessageEntity(msg)
+                // store the message entity (including its fragments)
+                storeMessageEntity(msgEnt)
                 // finally broadcast the existence of this message to the network
                 broadcastMessageShadow(msgEnt, "initial")
-
-
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
             }
+            // todo: make storeMessageEntity return status of transaction, if success, then we can set the flag as seen.
             // should only clear this flag if it's in the database. adding may have failed. check for exceptions
             // msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
         }
+    }
+
+    private fun javamailMessageToMessageEntity(msg: javax.mail.Message): MessageEntity {
+        val msgEnt = MessageEntity()
+        msgEnt.subject = msg.subject
+        msgEnt.body = extractReadableBody(msg)
+        msgEnt.recipient = msg.allRecipients[0].toString()
+        msgEnt.sender = msg.from[0].toString()
+        msgEnt.serverId = msg.getHeader("Message-ID")[0]
+        msgEnt.receivedDate = msg.receivedDate
+        msgEnt.hasBeenRequested = false
+        msgEnt.isShadow = false
+        msgEnt.type = "INBOUND"
+        msgEnt.hasBeenSent = false
+        msgEnt.fingerprint = md5(msgEnt.serverId + msgEnt.body).toHex().substring(0,8)
+        return msgEnt
+    }
+
+
+    private fun getFragmentsForMessage(msgEnt: MessageEntity): Iterable<MessageFragmentEntity> {
+        // now we build the protobuf version of the message
+
+        val pbMessage = MessageOuterClass.Message.newBuilder()
+        pbMessage.subject = msgEnt.subject
+        pbMessage.body = msgEnt.body    // TODO: maybe perform LZ compression here if needed
+        pbMessage.recipient = msgEnt.recipient
+        pbMessage.sender = msgEnt.sender
+        pbMessage.serverId = msgEnt.serverId
+        pbMessage.receivedDate = if(msgEnt.receivedDate != null) dateToMillis(msgEnt.receivedDate!!) else 0
+        pbMessage.fingerprint = msgEnt.fingerprint
+        pbMessage.type = msgEnt.type
+
+        // create the protobuf for the message, the raw data will get put into fragments
+        val pbMessageBytes: ByteArray = pbMessage.build().toByteArray()
+        msgEnt.protoBufSize = pbMessageBytes.size
+        // todo: calculate the largest max_message_fragment_size can be
+        val nFragments = ceil(pbMessageBytes.size / (Parameters.MAX_MESSAGE_FRAGMENT_SIZE *1.0)).roundToInt()
+        msgEnt.nFragments = nFragments
+
+
+        // create fragments and put into database
+        val fragmentList = ArrayList<MessageFragmentEntity>()
+        for(f in 0 until nFragments) {
+            val messageFragmentEntity = MessageFragmentEntity()
+            messageFragmentEntity.fingerprint = pbMessage.fingerprint
+            messageFragmentEntity.n = msgEnt.nFragments
+            messageFragmentEntity.m = f
+            val a = f * Parameters.MAX_MESSAGE_FRAGMENT_SIZE
+            val b = if(f == nFragments-1) {
+                msgEnt.protoBufSize!! // the last one should be the last byte of the full protobuf, not the hypothetical fragment size * n
+            } else {
+                a + Parameters.MAX_MESSAGE_FRAGMENT_SIZE
+            }
+            val d = pbMessageBytes.sliceArray(a until b)
+            messageFragmentEntity.data = d
+            fragmentList.add(messageFragmentEntity)
+        }
+        return fragmentList
+    }
+
+
+    /*
+        Take a message entity, create a protobuf version, break up the protobuf into fragments, make fragments
+        insert the fragments into the DB and the messageEntity
+     */
+    private fun storeMessageEntity(msgEnt: MessageEntity) {
+        val fragmentList = getFragmentsForMessage(msgEnt)
+        storeMessageAndFragments(msgEnt, fragmentList)
+    }
+
+
+    /*
+        Called by a relay with an inbound message and fragments it wants to make available to serve to clients
+        Called by a client with an outbout message and fragments ...
+     */
+    private fun storeMessageAndFragments(message: MessageEntity, fragments: Iterable<MessageFragmentEntity>) {
+        class dbTransaction : Runnable {
+            override fun run() {
+                // insert fragments
+                for(f in fragments)
+                    database.messageFragmentDao().insert(f)
+                // insert or update message
+                if(database.messageDao().getByFingerprint(message.fingerprint) == null)
+                    // insert if it's new (INBOUND, via IMAP)
+                    database.messageDao().insert(message)
+                else
+                    // update if it's OUTBOUND (composer fragment already made message entity)
+                    database.messageDao().update(message)
+            }
+        }
+        database.runInTransaction(dbTransaction())
     }
 
     private fun broadcastNecessaryMessageShadows() {
@@ -203,10 +271,8 @@ class MailSyncService : Service() {
         Log.d("MailSyncService","broadcast message shadow: $reason")
     }
 
-    private fun getEmails(): Array<Message>? {
-        val imapUsername = prefs?.getString("imap_username","")
-        val imapPassword = prefs?.getString("imap_password","")
-
+    private fun getMailProperties(): Properties {
+        // rebuild each time in case properties change to avoid restart program.
         val properties = Properties().apply {
             put("mail.imap.ssl.enable", "true")
             put("mail.smtp.ssl.enable", "true")
@@ -218,7 +284,42 @@ class MailSyncService : Service() {
             put("mail.smtps.port", prefs?.getString("smtp_server_port","0")?.toInt())
         }
 
-        val session = Session.getInstance(properties)
+        return properties
+    }
+
+    private fun sendEmail() {
+        val smtpUsername = prefs?.getString("smtp_username","")
+        val smtpPassword = prefs?.getString("smtp_password","")
+        val properties = getMailProperties()
+        val session = Session.getInstance(properties, object : Authenticator() {
+            override fun getPasswordAuthentication(): PasswordAuthentication {
+                return PasswordAuthentication(smtpUsername, smtpPassword)
+            }
+        })
+
+        try {
+            val message = MimeMessage(session)
+
+            message.setFrom(InternetAddress("Testy <test@meshmail.app>"))
+
+            message.addRecipient(Message.RecipientType.TO, InternetAddress("lukerl@gmail.com"))
+
+            message.subject = "this is a programmatic test"
+
+            message.setText("wang chung dong")
+
+            Transport.send(message)
+            Log.d("MailSyncService","mail sent successfully")
+        } catch (e: MessagingException) {
+            Log.e("MailSyncService","Message failed to send", e)
+        }
+    }
+
+    private fun getEmails(): Array<Message>? {
+        val imapUsername = prefs?.getString("imap_username","")
+        val imapPassword = prefs?.getString("imap_password","")
+
+        val session = Session.getInstance(getMailProperties())
         val store = session.getStore("imaps")
 
         return try {

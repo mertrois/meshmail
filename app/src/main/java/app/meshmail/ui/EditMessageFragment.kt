@@ -12,6 +12,9 @@ import app.meshmail.R
 import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import app.meshmail.MeshmailApplication.Companion.prefs
+import app.meshmail.util.md5
+import app.meshmail.util.toHex
+import java.util.*
 
 
 class EditMessageFragment(message: MessageEntity) : Fragment() {
@@ -52,16 +55,23 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
 
         sendFAB = view.findViewById(R.id.fabSend)
         sendFAB.setOnClickListener {
-            //(activity as ClientMessageListFragment.FragmentRequestListener).loadMessageFragment
-            Toast.makeText(app, "todo: entering message into send queue", Toast.LENGTH_SHORT).show()
+            message.type = "OUTBOUND" // mailSyncService will look for this and attempt to transmit
+            message.folder = "OUTBOX"
+            message.subject = subjectField.text.toString()
+            message.body = bodyField.text.toString()
+            message.recipient = toField.text.toString()
+            message.sender = fromField.text.toString()
+            message.fingerprint = md5(message.body + Date().toString() + message.subject + message.recipient).toHex().substring(0,8)
+            app.database.messageDao().insert(message)
+            Toast.makeText(app, "Message enqueued for transmission", Toast.LENGTH_SHORT).show()
+            activity?.supportFragmentManager?.popBackStack()
         }
 
         return view
     }
 
     private fun formatBodyForReply() {
-        // only reformat if it's a reply
-        if(isReply()) {
+        if(isReply()) { // only reformat if it's a reply
             bodyField.setText("""
 
 

@@ -103,9 +103,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         setContentView(R.layout.activity_main)
 
         // todo: remove; only for dev. Clean up before running.
-
-        // database.messageDao().deleteAll()
-        // database.messageFragmentDao().deleteAll()
+//         database.messageDao().deleteAll()
+//         database.messageFragmentDao().deleteAll()
 
         // load initial fragment based on mode the app is in
         supportFragmentManager

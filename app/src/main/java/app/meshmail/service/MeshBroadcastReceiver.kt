@@ -182,15 +182,24 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                 message.serverId = pbMessage.serverId
                 message.recipient = pbMessage.recipient
                 message.sender = pbMessage.sender
+                message.type = pbMessage.type
                 /*
-                this message has made the hop (relay-client or client-relay) so set this to true to prevent it
+                this message has made the hop (relay-client or client-relay) so set this to true to prevent its shadow
                 from being rebroadcast to to the other side ad-infinitum. No harm would be done as it would be marked as a duplicate,
                 but causes unnecessary traffic.
                  */
                 message.hasBeenRequested = true
                 message.receivedDate = millisToDate(pbMessage.receivedDate)
                 message.isShadow = false // woohoo we are a fully-fledged message now
-                message.folder = "INBOX" // all newly received messages go to inbox.
+                // removing the folling line--easier to set this in the originating client since we don't know which
+                // type of app is running this code
+
+                if(message.type == "INBOUND") {   // this receiver is running on the client
+                    message.folder = "INBOX"        // mark as inbox so it shows up.
+                } else if(message.type == "OUTBOUND") {   // this receiver is running on the relay.
+                    message.hasBeenSent = false             // just arrived, so hasn't been sent via smtp server yet.
+                }
+
                 database.messageDao().update(message)
                 result = message.let { msg ->
                     val sb = StringBuilder()
