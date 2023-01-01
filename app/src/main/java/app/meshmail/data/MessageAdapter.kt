@@ -1,16 +1,13 @@
 package app.meshmail.data
 
 import android.graphics.Typeface
-import android.util.TypedValue
 import java.text.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.ViewSwitcher
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -42,11 +39,15 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         }
 
         fun setGrayedOut(grayed: Boolean) {
-            if (grayed)  // light gray color
-                subjectTextView.alpha = .5f
-
+            if (grayed) {  // light gray color
+                senderTextView.alpha = 0.5f
+                dateTextView.alpha = 0.5f
+                subjectTextView.alpha = 0.5f
+            }
             else {      // otherwise, set it to the theme default
-                subjectTextView.alpha = 1.0f
+                senderTextView.alpha = 1f
+                dateTextView.alpha = 1f
+                subjectTextView.alpha = 1f
             }
         }
     }
@@ -61,7 +62,7 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         val message = getItem(position)
         holder.senderTextView.text = getFormattedSender(message)
         holder.dateTextView.text = getFormattedDate(message)
-        holder.subjectTextView.text = message.subject?.trim()
+        holder.subjectTextView.text = message.subject.trim()
         holder.itemView.setOnClickListener {
             onClickListener.onClick(message)
         }

@@ -13,8 +13,8 @@ option java_package = "app.meshmail.data.protobuf";
 // the shadow object gets tagged on to a protocol control protobuf
 message MessageShadow {
   string subject = 1;       // needs to have a max length
-  string serverId = 2;      // may need to shorten this
   string fingerprint = 3;   // may want this to prevent having to send full serverID with each fragment
-  sint32 nFragments = 4;
-
+  sint32 nFragments = 5;    // how many to expect
+  string sender = 7;        //
+  uint64 receivedDate = 9;  //
 }

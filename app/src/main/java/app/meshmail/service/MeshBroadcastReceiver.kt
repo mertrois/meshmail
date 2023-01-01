@@ -82,10 +82,12 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             newMessage.folder = "INBOX" // this ensures fragments will show up in inbox (with progress bar)
             // when inflated to non-shadow messages, type will come through and folder will be set appropriately
             // remove to hide shadows from the inbox.
+            newMessage.receivedDate = millisToDate(pbMessageShadow.receivedDate)
             newMessage.fingerprint = pbMessageShadow.fingerprint
             newMessage.nFragments = pbMessageShadow.nFragments
             newMessage.subject   = pbMessageShadow.subject
-            newMessage.isShadow = true
+            newMessage.sender   = pbMessageShadow.sender
+            newMessage.isShadow = true  // we don't yet have the body
             newMessage.hasBeenRequested = true  // this indicates to the client not to send out shadow broadcasts back to the originator
                                                 // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
             database.messageDao().insert(newMessage)

@@ -14,7 +14,7 @@ data class MessageEntity(
     var serverId: String? = "",
 
     // message subject
-    var subject: String? = "",
+    var subject: String = "",
 
     // body
     var body: String? = "",

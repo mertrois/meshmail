@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
-import android.widget.Toast
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.android.PrefsManager
@@ -82,7 +81,7 @@ class MailSyncService : Service() {
 
     private fun syncMail() {
 
-        if(prefs.getBoolean("relay_mode", false)!!) {
+        if(prefs.getBoolean("relay_mode", false)) {
             // get newly arrived messages
             val emails: Array<Message>? = getEmails() // todo: only pull unseen messages
             Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
@@ -114,11 +113,11 @@ class MailSyncService : Service() {
         // todo: actually send via smtp
         Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
 
-        val senderName = prefs?.getString("sender_name")
-        val senderEmail = prefs?.getString("sender_email")
+        val senderName = prefs.getString("sender_name")
+        val senderEmail = prefs.getString("sender_email")
 
-        val smtpUsername = prefs?.getString("smtp_username","")
-        val smtpPassword = prefs?.getString("smtp_password","")
+        val smtpUsername = prefs.getString("smtp_username","")
+        val smtpPassword = prefs.getString("smtp_password","")
         val properties = getMailProperties()
 
         val auth: Authenticator = object : Authenticator() {
@@ -161,7 +160,7 @@ class MailSyncService : Service() {
             val fragmentList = getFragmentsForMessage(msg)
             msg.folder = "SENT"             // this indicates we have made the fragments and ready to broadcast a shadow
             msg.type = "OUTBOUND"           // repeating for clarity
-            msg.hasBeenRequested = false    // this will indicate to mailsyncservice that the other end (relay) hasn't requested a fragment yet.
+            msg.hasBeenRequested = false    // this will indicate to MailSyncService that the other end (relay) hasn't requested a fragment yet.
             msg.nFragments = fragmentList.count()
             storeMessageAndFragments(msg, fragmentList)
             // finally broadcast the existence of this message to the network
@@ -173,7 +172,7 @@ class MailSyncService : Service() {
     /*
 
         Take a list of javamail messages and store them as MessageEntity, including generating their fragments
-        to be sync'd
+        to be sync'ed
 
      */
     private fun storeMessages(messages: Array<Message>) {
@@ -197,7 +196,7 @@ class MailSyncService : Service() {
         }
     }
 
-    private fun javamailMessageToMessageEntity(msg: javax.mail.Message): MessageEntity {
+    private fun javamailMessageToMessageEntity(msg: Message): MessageEntity {
         val msgEnt = MessageEntity()
         msgEnt.subject = msg.subject
         msgEnt.body = extractReadableBody(msg)
@@ -268,10 +267,10 @@ class MailSyncService : Service() {
 
     /*
         Called by a relay with an inbound message and fragments it wants to make available to serve to clients
-        Called by a client with an outbout message and fragments ...
+        Called by a client with an outbound message and fragments ...
      */
     private fun storeMessageAndFragments(message: MessageEntity, fragments: Iterable<MessageFragmentEntity>) {
-        class dbTransaction : Runnable {
+        class DBTransaction : Runnable {
             override fun run() {
                 // insert fragments
                 for(f in fragments)
@@ -285,7 +284,7 @@ class MailSyncService : Service() {
                     database.messageDao().update(message)
             }
         }
-        database.runInTransaction(dbTransaction())
+        database.runInTransaction(DBTransaction())
     }
 
     private fun broadcastNecessaryMessageShadows() {
@@ -302,7 +301,11 @@ class MailSyncService : Service() {
         val pbMessageShadow = MessageShadow.newBuilder()
         pbMessageShadow.fingerprint = message.fingerprint
         pbMessageShadow.subject = message.subject
-        pbMessageShadow.nFragments = message.nFragments!!
+        pbMessageShadow.nFragments = message.nFragments
+        pbMessageShadow.sender = message.sender
+        pbMessageShadow.receivedDate = if(message.receivedDate != null) dateToMillis(message.receivedDate!!) else 0
+
+
         pbProtocolMessage.messageShadow = pbMessageShadow.build()
         // this is ready to send over mesh network to announce a new message has come in
         val pbProtocolMessageBytes: ByteArray = pbProtocolMessage.build().toByteArray()
@@ -318,8 +321,8 @@ class MailSyncService : Service() {
             // IMAP Properties
             put("mail.imap.ssl.enable", "true")
             put("mail.imap.starttls.enable", "true")
-            put("mail.imaps.host", prefs?.getString("imap_server",""))
-            put("mail.imaps.port", prefs?.getString("imap_server_port","0")?.toInt())
+            put("mail.imaps.host", prefs.getString("imap_server",""))
+            put("mail.imaps.port", prefs.getString("imap_server_port","0").toInt())
 
 
             // TLS
@@ -330,11 +333,11 @@ class MailSyncService : Service() {
 
 
             // props for SSL Email
-            put("mail.smtp.host",  prefs?.getString("smtp_server",""))
-            put("mail.smtp.socketFactory.port", prefs?.getString("smtp_server_port","0")?.toInt())
+            put("mail.smtp.host", prefs.getString("smtp_server",""))
+            put("mail.smtp.socketFactory.port", prefs.getString("smtp_server_port","0").toInt())
             put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
             put("mail.smtp.auth", "true")
-            put("mail.smtp.port",  prefs?.getString("smtp_server_port","0")?.toInt())
+            put("mail.smtp.port",  prefs.getString("smtp_server_port","0").toInt())
 
 
         }
@@ -345,8 +348,8 @@ class MailSyncService : Service() {
 
 
     private fun getEmails(): Array<Message>? {
-        val imapUsername = prefs?.getString("imap_username","")
-        val imapPassword = prefs?.getString("imap_password","")
+        val imapUsername = prefs.getString("imap_username","")
+        val imapPassword = prefs.getString("imap_password","")
 
         val session = Session.getInstance(getMailProperties())
         val store = session.getStore("imaps")
@@ -357,8 +360,8 @@ class MailSyncService : Service() {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
 
-            //inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
-            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
+            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
+            //inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
             null
