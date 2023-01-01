@@ -23,6 +23,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="2dp"
+                android:textIsSelectable="true"
                 android:textSize="18sp" />
 
             <TextView
@@ -30,6 +31,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="2dp"
+                android:textIsSelectable="true"
                 android:textSize="18sp" />
 
             <TextView
@@ -37,6 +39,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="2dp"
+                android:textIsSelectable="true"
                 android:textSize="18sp" />
 
             <TextView
@@ -44,6 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="2dp"
+                android:textIsSelectable="true"
                 android:textSize="18sp" />
 
             <TextView
@@ -53,6 +57,7 @@
                 android:background="@null"
                 android:gravity="start|top"
                 android:paddingVertical="4dp"
+                android:textIsSelectable="true"
                 android:textSize="18sp" />
 
         </LinearLayout>
