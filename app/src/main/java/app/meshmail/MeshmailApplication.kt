@@ -12,14 +12,12 @@ import com.geeksville.mesh.IMeshService
 
 class MeshmailApplication : Application() {
 
-    companion object {
-        var prefs: PrefsManager? = null
-    }
+    lateinit var prefs: PrefsManager
     var meshService: IMeshService? = null
     val meshServiceManager: MeshServiceManager = MeshServiceManager(this)
     var fragmentSyncService: MessageFragmentSyncService? = null
 
-    // todo: restructure to remove allowmainthreadqueries ... only avoiding premature optimization in development
+    // todo: restructure to remove allowmainthreadqueries
     val database: MeshmailDatabase by lazy {
         Room.databaseBuilder(
             this,
@@ -28,15 +26,9 @@ class MeshmailApplication : Application() {
         ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
     }
 
-
     override fun onCreate() {
         super.onCreate()
         prefs = PrefsManager(this)
     }
-
-
-
-
-
 
 }

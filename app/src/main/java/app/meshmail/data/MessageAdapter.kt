@@ -1,12 +1,16 @@
 package app.meshmail.data
 
 import android.graphics.Typeface
+import android.util.TypedValue
 import java.text.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.ViewSwitcher
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -21,17 +25,29 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         val senderTextView: TextView = itemView.findViewById(R.id.sender_text_view)
         val dateTextView: TextView = itemView.findViewById(R.id.date_text_view)
         val subjectTextView: TextView = itemView.findViewById(R.id.subject_text_view)
+        val viewSwitcher: ViewSwitcher = itemView.findViewById(R.id.progress_view_switcher)
+        val progBar: ProgressBar = itemView.findViewById(R.id.fragment_load_progress)
 
         private val normFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         private val boldFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
 
+
         fun setTypeface(bold: Boolean) {
             var useFace = normFace
-            if(bold) useFace = boldFace
+            if (bold) useFace = boldFace
 
             senderTextView.typeface = useFace
             dateTextView.typeface = useFace
             subjectTextView.typeface = useFace
+        }
+
+        fun setGrayedOut(grayed: Boolean) {
+            if (grayed)  // light gray color
+                subjectTextView.alpha = .5f
+
+            else {      // otherwise, set it to the theme default
+                subjectTextView.alpha = 1.0f
+            }
         }
     }
 
@@ -51,8 +67,21 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         }
 
         holder.setTypeface(!message.hasBeenRead)
+        holder.itemView.isEnabled = !message.isShadow
+        holder.setGrayedOut(message.isShadow)
 
+        if(message.fragsReceived == 0)
+            holder.progBar.isIndeterminate = true
+        else {
+            holder.progBar.max = message.nFragments
+            holder.progBar.progress = message.fragsReceived
+            holder.progBar.isIndeterminate = false
+        }
 
+        if(message.isShadow) {
+            holder.viewSwitcher.displayedChild = 0
+        } else
+            holder.viewSwitcher.displayedChild = 1
     }
 
     class OnClickListener(val clickListener: (message: MessageEntity) -> Unit) {
@@ -70,7 +99,9 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
     }
 
 
-    fun getFormattedDate(message: MessageEntity): String {
+    private fun getFormattedDate(message: MessageEntity): String {
+        if(message.receivedDate == null) return ""  // shadow messages will have a null date field.
+
         val now: Calendar = Calendar.getInstance() // get our current date/time for reference
         val msgDate: Date? = message.receivedDate
         val msgCal: Calendar = Calendar.getInstance()
@@ -91,6 +122,7 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
     }
 
     fun getFormattedSender(message: MessageEntity): String {
+        if(message.sender == null) return ""    // shadow messages won't have sender
         // if there is plain text before the < > section, just use that
         // if none, then extract the address between the < >'s and use that
 

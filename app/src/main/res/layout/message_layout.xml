@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -21,33 +22,49 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/view">
 
-        <LinearLayout
+        <ViewSwitcher
+            android:id="@+id/progress_view_switcher"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/sender_text_view"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.8"
-                android:fontFamily="sans-serif"
-                android:gravity="start"
-                android:text="Bob Loblaw"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:typeface="normal" />
+            <ProgressBar
+                android:id="@+id/fragment_load_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="10dp" />
 
-            <TextView
-                android:id="@+id/date_text_view"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.4"
-                android:fontFamily="sans-serif"
-                android:gravity="end"
-                android:text="12/23/22"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:typeface="normal" />
-        </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/sender_text_view"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.8"
+                    android:fontFamily="sans-serif"
+                    android:gravity="start"
+                    android:text="Bob Loblaw"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:typeface="normal" />
+
+                <TextView
+                    android:id="@+id/date_text_view"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.4"
+                    android:fontFamily="sans-serif"
+                    android:gravity="end"
+                    android:text="12/23/22"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:typeface="normal" />
+            </LinearLayout>
+
+
+        </ViewSwitcher>
+
+
 
         <TextView
             android:id="@+id/subject_text_view"

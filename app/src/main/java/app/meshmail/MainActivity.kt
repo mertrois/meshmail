@@ -11,8 +11,9 @@ import android.view.MenuItem
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import app.meshmail.MeshmailApplication.Companion.prefs
+import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
+import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.service.MailSyncService
@@ -25,7 +26,7 @@ import app.meshmail.ui.*
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, ClientMessageListFragment.FragmentRequestListener {
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
     private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
-
+    private lateinit var prefs: PrefsManager
     private val serviceIntent = Intent().apply {
         setClassName(
             "com.geeksville.mesh",
@@ -100,16 +101,19 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        prefs = (application as MeshmailApplication).prefs
+
         setContentView(R.layout.activity_main)
 
         // todo: remove; only for dev. Clean up before running.
-//         database.messageDao().deleteAll()
-//         database.messageFragmentDao().deleteAll()
+         database.messageDao().deleteAll()
+         database.messageFragmentDao().deleteAll()
 
         // load initial fragment based on mode the app is in
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.fragment_container, if(prefs?.getBoolean("relay_mode") == false) ClientMessageListFragment() else StatusRelayFragment())
+            .replace(R.id.fragment_container, if(!prefs.getBoolean("relay_mode")) ClientMessageListFragment() else StatusRelayFragment())
             .commit()
 
         try {
@@ -127,7 +131,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
 
-        val appType: String = if(prefs?.getBoolean("relay_mode") == true) "relay" else "client"
+        val appType: String = if(prefs.getBoolean("relay_mode")) "relay" else "client"
         supportActionBar?.title = "Meshmail — $appType"
         supportActionBar?.setDisplayHomeAsUpEnabled(true) // displays back arrow if true
         supportActionBar?.setDisplayShowTitleEnabled(true)

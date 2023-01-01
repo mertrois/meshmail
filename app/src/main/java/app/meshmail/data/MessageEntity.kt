@@ -36,7 +36,7 @@ data class MessageEntity(
     // TODO: enforce a unique constraint here
     var fingerprint: String = "",
 
-    var nFragments: Int? = null,
+    var nFragments: Int = 0,
 
     var protoBufSize: Int? = null,
 
@@ -54,6 +54,7 @@ data class MessageEntity(
     ///////////////////////
     /// Client- only fields
     ///////////////////////
+    var fragsReceived: Int = 0,
 
     // to control bold typeface in list--client use only
     var hasBeenRead: Boolean = false,

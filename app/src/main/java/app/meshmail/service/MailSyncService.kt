@@ -7,7 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
-import app.meshmail.MeshmailApplication.Companion.prefs
+import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
@@ -37,6 +37,10 @@ class MailSyncService : Service() {
 
     private val database: MeshmailDatabase by lazy {
         (application as MeshmailApplication).database
+    }
+
+    private val prefs: PrefsManager by lazy {
+        (application as MeshmailApplication).prefs
     }
 
     override fun onCreate() {
@@ -78,7 +82,7 @@ class MailSyncService : Service() {
 
     private fun syncMail() {
 
-        if(prefs?.getBoolean("relay_mode", false)!!) {
+        if(prefs.getBoolean("relay_mode", false)!!) {
             // get newly arrived messages
             val emails: Array<Message>? = getEmails() // todo: only pull unseen messages
             Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")

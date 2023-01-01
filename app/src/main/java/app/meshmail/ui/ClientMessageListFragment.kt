@@ -14,15 +14,17 @@ import androidx.recyclerview.widget.RecyclerView
 import app.meshmail.MainActivity
 import app.meshmail.MeshmailApplication
 import app.meshmail.R
+import app.meshmail.android.PrefsManager
 import app.meshmail.data.MessageAdapter
 import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
-import app.meshmail.MeshmailApplication.Companion.prefs
+
 
 
 class ClientMessageListFragment : Fragment() {
     private lateinit var app: MeshmailApplication
+    private lateinit var prefs: PrefsManager
     private lateinit var messagesRecyclerView: RecyclerView
     private lateinit var messageAdapter: MessageAdapter
     private lateinit var messagesLayoutManager: RecyclerView.LayoutManager
@@ -149,6 +151,7 @@ class ClientMessageListFragment : Fragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         app = requireActivity().application as MeshmailApplication
+        prefs = app.prefs
         if(context is FragmentRequestListener) {
             requestListener = context
         } else {

@@ -17,6 +17,7 @@ import app.meshmail.data.protobuf.MessageFragmentOuterClass.MessageFragment
 import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 
+
 class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private val database: MeshmailDatabase by lazy { (context as MeshmailApplication).database }
     private val meshServiceManager: MeshServiceManager by lazy { (context as MeshmailApplication).meshServiceManager }
@@ -78,9 +79,12 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         // since fingerprint should be reasonably unique?
         if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
             val newMessage = MessageEntity()
+            newMessage.folder = "INBOX" // this ensures fragments will show up in inbox (with progress bar)
+            // when inflated to non-shadow messages, type will come through and folder will be set appropriately
+            // remove to hide shadows from the inbox.
             newMessage.fingerprint = pbMessageShadow.fingerprint
             newMessage.nFragments = pbMessageShadow.nFragments
-            newMessage.subject = pbMessageShadow.subject
+            newMessage.subject   = pbMessageShadow.subject
             newMessage.isShadow = true
             newMessage.hasBeenRequested = true  // this indicates to the client not to send out shadow broadcasts back to the originator
                                                 // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
@@ -150,11 +154,13 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private fun handleFragmentBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {
         var result: String // for debugging
         val pbMessageFragment: MessageFragment = pbProtocolMessage.messageFragment
-        // insert this message fragment into the database
+
+        // if this fragment exists, ignore and return
         if(database.messageFragmentDao().getMatchingFragments(pbMessageFragment.fingerprint, pbMessageFragment.m).isNotEmpty()) {
             Log.d("MeshBroadcastReceiver","duplicate fragment received: ${pbMessageFragment.m} of ${pbMessageFragment.fingerprint}. Ignoring")
             return
         }
+
         val messageFragmentEntity = MessageFragmentEntity()
         messageFragmentEntity.data = pbMessageFragment.payload.toByteArray()
         messageFragmentEntity.m = pbMessageFragment.m
@@ -165,9 +171,18 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         // now, does this give us a complete set of fragments?
         result = "Fragment ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint} received."
         // if number of fragments on hand matches expected n, try to reconstitute the message
-        if(database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint) == pbMessageFragment.n) {
+
+        // get total fragments received to check if we have a complete message yet
+        val numFragsReceived = database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint)
+        // get a reference to the message--we'll use it either way
+        val message: MessageEntity = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)!!
+        if(message != null) {   // update the received count in the message -- redundant, but changes get automagically pushed to the UI progress bar this way
+            message.fragsReceived = numFragsReceived
+            database.messageDao().update(message)
+        }
+
+        if(numFragsReceived == pbMessageFragment.n) {
             // is there as message object, and is it a shadow?
-            val message: MessageEntity = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)!!
             if(message != null && message.isShadow!!) {
                 Log.d("MeshBroadcastReceiver","reconstituting message and upgrading to non-shadow")
                 val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)

@@ -31,7 +31,8 @@ interface MessageDao {
     @Query("select * from messages where type = 'OUTBOUND' and hasBeenSent = 0")
     fun getMessagesReadyToSend(): List<MessageEntity>
 
-    @Query("select * from messages where isShadow = 0 and folder = :folder order by receivedDate DESC")
+    //@Query("select * from messages where isShadow = 0 and folder = :folder order by receivedDate DESC")
+    @Query("select * from messages where folder = :folder order by receivedDate DESC")
     fun getMessagesByFolderLive(folder: String): LiveData<List<MessageEntity>>
 
     @Query("select * from messages where isShadow = 1")
