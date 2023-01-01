@@ -82,6 +82,8 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             newMessage.nFragments = pbMessageShadow.nFragments
             newMessage.subject = pbMessageShadow.subject
             newMessage.isShadow = true
+            newMessage.hasBeenRequested = true  // this indicates to the client not to send out shadow broadcasts back to the originator
+                                                // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
             database.messageDao().insert(newMessage)
         }
 
