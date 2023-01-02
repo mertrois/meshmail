@@ -109,6 +109,29 @@ class MailSyncService : Service() {
         broadcastNecessaryMessageShadows()
     }
 
+
+    private fun getEmails(): Array<Message>? {
+        val imapUsername = prefs.getString("imap_username","")
+        val imapPassword = prefs.getString("imap_password","")
+
+        val session = Session.getInstance(getMailProperties())
+        val store = session.getStore("imaps")
+
+        return try {
+            store.connect(imapUsername, imapPassword)
+
+            val inbox = store.getFolder("INBOX")
+            inbox.open(Folder.READ_WRITE)
+
+            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
+            //inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
+        } catch(e: Exception) {
+            Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
+            null
+        }
+    }
+
+
     private fun sendMessageViaSMTP(message: MessageEntity) {
         // todo: actually send via smtp
         Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
@@ -312,6 +335,7 @@ class MailSyncService : Service() {
         // broadcast the message shadow
         meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
         Log.d("MailSyncService","broadcast message shadow: $reason")
+        meshServiceManager.nudge()
     }
 
     private fun getMailProperties(): Properties {
@@ -346,27 +370,6 @@ class MailSyncService : Service() {
     }
 
 
-
-    private fun getEmails(): Array<Message>? {
-        val imapUsername = prefs.getString("imap_username","")
-        val imapPassword = prefs.getString("imap_password","")
-
-        val session = Session.getInstance(getMailProperties())
-        val store = session.getStore("imaps")
-
-        return try {
-            store.connect(imapUsername, imapPassword)
-
-            val inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_WRITE)
-
-            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
-            //inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
-        } catch(e: Exception) {
-            Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
-            null
-        }
-    }
 
 
 }

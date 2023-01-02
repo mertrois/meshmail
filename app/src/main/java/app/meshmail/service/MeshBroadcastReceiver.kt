@@ -37,25 +37,30 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             }
             "com.geeksville.mesh.RECEIVED.${Parameters.MESHMAIL_PORT}" -> {
                 val act = intent.action ?: ""
-                Log.d("onReceive", "received an action: $act")
                 try {
                     val data: DataPacket = intent.getParcelableExtra("com.geeksville.mesh.Payload")!!
                     val pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.parseFrom(data.bytes)
 
-                    when(pbProtocolMessage.pmtype) {
+                    try {
+                        when (pbProtocolMessage.pmtype) {
 
-                        ProtocolMessageType.SHADOW_BROADCAST ->
-                            handleShadowBroadcast(pbProtocolMessage)
+                            ProtocolMessageType.SHADOW_BROADCAST ->
+                                handleShadowBroadcast(pbProtocolMessage)
 
-                        ProtocolMessageType.FRAGMENT_REQUEST ->
-                            handleFragmentRequest(pbProtocolMessage)
+                            ProtocolMessageType.FRAGMENT_REQUEST ->
+                                handleFragmentRequest(pbProtocolMessage)
 
-                        ProtocolMessageType.FRAGMENT_BROADCAST ->
-                            handleFragmentBroadcast(pbProtocolMessage)
+                            ProtocolMessageType.FRAGMENT_BROADCAST ->
+                                handleFragmentBroadcast(pbProtocolMessage)
 
-                        else ->
-                            Log.d("onReceive","unknown Meshmail protocol message. don't know how to parse this yet")
-
+                            else ->
+                                Log.d(
+                                    "onReceive",
+                                    "unknown Meshmail protocol message. don't know how to parse this yet"
+                                )
+                        }
+                    } catch(e: Exception) {
+                        Log.d("MeshBroadcastReceiver", "Error decoding packet", e)
                     }
 
                 } catch(e: Exception) {
@@ -91,6 +96,8 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             newMessage.hasBeenRequested = true  // this indicates to the client not to send out shadow broadcasts back to the originator
                                                 // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
             database.messageDao().insert(newMessage)
+        } else {
+            Log.d("MeshBroadcastReceiver","Duplicate shadow broadcast received ${pbMessageShadow.fingerprint}")
         }
 
         // we want to have a service running on the client that gets notified when new messages
@@ -108,6 +115,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         })
 
         meshMailApplication.fragmentSyncService?.nudge("handleShadowBroadcast")
+        meshServiceManager.nudge()
     }
 
     private fun handleFragmentRequest(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {
@@ -140,6 +148,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         val pbProtocolMessageBytes: ByteArray = pbProtocolMessageOut.build().toByteArray()
         // send it
         meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
+        meshServiceManager.nudge()
 
         // debugging
         Log.d("MeshBroadcastReceiver",
@@ -154,90 +163,41 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     }
 
     private fun handleFragmentBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {
-        var result: String // for debugging
+
         val pbMessageFragment: MessageFragment = pbProtocolMessage.messageFragment
 
-        // if this fragment exists, ignore and return
+        Log.d("MeshBroadcastReceiver","Fragment ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint} received.")
+
+        // if this fragment is already in the database, ignore it
         if(database.messageFragmentDao().getMatchingFragments(pbMessageFragment.fingerprint, pbMessageFragment.m).isNotEmpty()) {
-            Log.d("MeshBroadcastReceiver","duplicate fragment received: ${pbMessageFragment.m} of ${pbMessageFragment.fingerprint}. Ignoring")
-            return
+            Log.d("MeshBroadcastReceiver","duplicate fragment received: ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint}. Ignoring")
+        } else {    // add it to fragment database
+            val messageFragmentEntity = MessageFragmentEntity()
+            messageFragmentEntity.data = pbMessageFragment.payload.toByteArray()
+            messageFragmentEntity.m = pbMessageFragment.m
+            messageFragmentEntity.n = pbMessageFragment.n
+            messageFragmentEntity.fingerprint = pbMessageFragment.fingerprint
+            database.messageFragmentDao().insert(messageFragmentEntity)
         }
 
-        val messageFragmentEntity = MessageFragmentEntity()
-        messageFragmentEntity.data = pbMessageFragment.payload.toByteArray()
-        messageFragmentEntity.m = pbMessageFragment.m
-        messageFragmentEntity.n = pbMessageFragment.n
-        messageFragmentEntity.fingerprint = pbMessageFragment.fingerprint
-        database.messageFragmentDao().insert(messageFragmentEntity)
-
-        // now, does this give us a complete set of fragments?
-        result = "Fragment ${pbMessageFragment.m}/${pbMessageFragment.n} of ${pbMessageFragment.fingerprint} received."
-        // if number of fragments on hand matches expected n, try to reconstitute the message
-
-        // get total fragments received to check if we have a complete message yet
-        val numFragsReceived = database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint)
-        // get a reference to the message--we'll use it either way
-        val message: MessageEntity = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)!!
-        if(message != null) {   // update the received count in the message -- redundant, but changes get automagically pushed to the UI progress bar this way
-            message.fragsReceived = numFragsReceived
+        val message: MessageEntity? = database.messageDao().getByFingerprint(pbMessageFragment.fingerprint)
+        if(message != null) {
+            // update the received count in the message -- redundant since we can just count fragments,
+            // but changes get automagically pushed to the UI progress bar this way
+            message.fragsReceived = database.messageFragmentDao().getNumFragmentsAvailable(pbMessageFragment.fingerprint)
             database.messageDao().update(message)
-        }
-
-        if(numFragsReceived == pbMessageFragment.n) {
-            // is there as message object, and is it a shadow?
-            if(message != null && message.isShadow!!) {
-                Log.d("MeshBroadcastReceiver","reconstituting message and upgrading to non-shadow")
-                val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
-                //fragments.sortedBy({ f -> f.m }) // this might not be necessary, already requested sorted from database.
-                //val buffer = ArrayList<Byte>()
-                var buffer = ByteArray(0)
-                for(fragment in fragments) {
-                    buffer += fragment.data!!
-                }
-                // now we can conjure a protobuf message from the concatenated byte arrays
-                val pbMessage = MessageOuterClass.Message.parseFrom(buffer)
-                // update our Message in the DB
-                message.body = pbMessage.body
-                message.serverId = pbMessage.serverId
-                message.recipient = pbMessage.recipient
-                message.sender = pbMessage.sender
-                message.type = pbMessage.type
-                /*
-                this message has made the hop (relay-client or client-relay) so set this to true to prevent its shadow
-                from being rebroadcast to to the other side ad-infinitum. No harm would be done as it would be marked as a duplicate,
-                but causes unnecessary traffic.
-                 */
-                message.hasBeenRequested = true
-                message.receivedDate = millisToDate(pbMessage.receivedDate)
-                message.isShadow = false // woohoo we are a fully-fledged message now
-                // removing the folling line--easier to set this in the originating client since we don't know which
-                // type of app is running this code
-
-                if(message.type == "INBOUND") {   // this receiver is running on the client
-                    message.folder = "INBOX"        // mark as inbox so it shows up.
-                } else if(message.type == "OUTBOUND") {   // this receiver is running on the relay.
-                    message.hasBeenSent = false             // just arrived, so hasn't been sent via smtp server yet.
-                }
-
-                database.messageDao().update(message)
-                result = message.let { msg ->
-                    val sb = StringBuilder()
-                    sb.appendLine("Received new Message: ${msg.fingerprint}")
-                    sb.appendLine("subject: ${msg.subject}")
-                    sb.appendLine("body: ${msg.body}")
-                    sb.toString()
-                }
-            }
+            database.attemptToReconstituteMessage(message)
+        } else {
+            Log.d("MeshBroadcastReceiver","Orphan fragment received, no shadow with fingerprint ${pbMessageFragment.fingerprint}")
         }
 
         /*
-        the relay just sent us a fragment, and we don't yet have them all, so let's go ahead a request another fragment
+        network just sent us a fragment, and we probably don't yet have them all, so let's go ahead a request another fragment
         now instead of waiting for the sync service to get around to it later. Even if we did just get the last one to make
         a complete message, that's also a nudge so we can move on to the next message that has missing frags.
          */
         meshMailApplication.fragmentSyncService?.nudge("handleFragmentBroadcast")
+        meshServiceManager.nudge()
 
-        // debugging output
-        Log.d("MeshBroadcastReceiver", result)
     }
 }

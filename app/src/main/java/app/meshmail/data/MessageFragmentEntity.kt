@@ -9,8 +9,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "message_fragments")
 data class MessageFragmentEntity(
     @PrimaryKey(autoGenerate = true) var id: Int? = null,
-    var fingerprint: String? = null,
-    var m: Int? = null,
-    var n: Int? = null,
-    var data: ByteArray? = null,
+    var fingerprint: String = "",
+    var m: Int = 0,
+    var n: Int = 0,
+    var data: ByteArray = byteArrayOf(),
 )

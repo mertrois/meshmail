@@ -1,14 +1,18 @@
 package app.meshmail.android
 
 import android.content.Context
+import androidx.lifecycle.MutableLiveData
 import androidx.preference.PreferenceManager
-
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 
 class PrefsManager(val context: Context, val name: String = "prefs") {
     var sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     //val sharedPreferences = context.getSharedPreferences(name, Context.MODE_PRIVATE)
     var sharedPreferenceContents = sharedPreferences.all
+
+
 
     fun refresh() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)

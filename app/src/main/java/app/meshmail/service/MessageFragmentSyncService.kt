@@ -6,6 +6,7 @@ import android.os.IBinder
 import android.util.Log
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
+import app.meshmail.android.Parameters.Companion.FRAG_SYNC_SHADOWS_TO_ANALYZE
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
@@ -69,7 +70,9 @@ class MessageFragmentSyncService : Service() {
         }
     }
 
-
+    private fun l(msg: String) {
+        Log.d("MessageFragmentSyncService", msg)
+    }
     /*
         Need to find balance between enqueuing too many at once (but more efficient) vs one at a time, more processor intensive, more fault tolerant.
         todo: implement an increasing delay algorithm on frag sync service... start with short delays and if the job runs and no fragments need to
@@ -77,28 +80,46 @@ class MessageFragmentSyncService : Service() {
         to get a fragment re-requested...
      */
     private fun runSync() {
+
+        // if the radio queue already has a bunch of packets, and the queue strips out duplicates
+        // don't bother running right now, it's just extra cycles.
+        if(! meshServiceManager.queueEmpty()) {
+            l("Queue still full (${meshServiceManager.queueSize()}), not adding new fragment requests.")
+            return
+        }
         // get a list of messages that are shadows
         //val shadowMessages: List<MessageEntity> = database.messageDao().getAllShadows()  // old way of doing it causing excessive collisions
-        val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(1)
+        val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(
+            FRAG_SYNC_SHADOWS_TO_ANALYZE
+        )
         // for each shadow message, get a list of missing fragments
-        for(message in shadowMessages) {
-            val neededFragments = (0 until message.nFragments!!).toMutableSet()
+        for(message in shadowMessages) { // breadth first request one frag for each shadow round robin
+            val neededFragments = (0 until message.nFragments).toMutableSet()
             val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
             for(fragment in fragments) {
                 neededFragments.remove(fragment.m)
             }
             // send a fragment request for the first missing one
-            if(neededFragments.size > 0) {
-                // todo: enqueue more than just the first one...
-                val pbProtocolMessage = ProtocolMessage.newBuilder()
-                pbProtocolMessage.pmtype = ProtocolMessageType.FRAGMENT_REQUEST
-                val pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
-                pbMessageFragmentRequest.m = neededFragments.first()
-                pbMessageFragmentRequest.fingerprint = message.fingerprint
-                pbProtocolMessage.messageFragmentRequest = pbMessageFragmentRequest.build()
-                val pbProtocolMessageBytes: ByteArray = pbProtocolMessage.build().toByteArray()
-
-                meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
+            var fragsAdded = 0
+            if(neededFragments.isNotEmpty()) {
+                for(frag in neededFragments) {
+                    if(fragsAdded >= Parameters.MAX_FRAGS_AT_ONCE)
+                        break
+                    val pbProtocolMessage = ProtocolMessage.newBuilder()
+                    pbProtocolMessage.pmtype = ProtocolMessageType.FRAGMENT_REQUEST
+                    val pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
+                    pbMessageFragmentRequest.m = frag
+                    pbMessageFragmentRequest.fingerprint = message.fingerprint
+                    pbProtocolMessage.messageFragmentRequest = pbMessageFragmentRequest.build()
+                    val pbProtocolMessageBytes: ByteArray = pbProtocolMessage.build().toByteArray()
+                    pbMessageFragmentRequest.let {
+                        Log.d("MessageFragmentSyncService", "Requesting fragment ${it.m} of ${it.fingerprint}")
+                    }
+                    meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
+                    fragsAdded++
+                }
+            } else {
+                database.attemptToReconstituteMessage(message)
             }
         }
     }
