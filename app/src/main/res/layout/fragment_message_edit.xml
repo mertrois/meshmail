@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="5dp">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -49,13 +49,13 @@
                 android:background="@null"
                 android:contextClickable="true"
                 android:cursorVisible="true"
-                android:paddingHorizontal="2dp"
                 android:focusedByDefault="true"
                 android:freezesText="true"
                 android:gravity="start|left"
                 android:inputType="textMultiLine|textAutoComplete"
                 android:maxLines="100000"
-                android:minLines="1" />
+                android:minLines="1"
+                android:paddingHorizontal="2dp" />
 
         </LinearLayout>
     </ScrollView>
@@ -71,7 +71,6 @@
         android:clickable="true"
         android:contentDescription="send message"
         android:src="@drawable/send_48px" />
-
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
