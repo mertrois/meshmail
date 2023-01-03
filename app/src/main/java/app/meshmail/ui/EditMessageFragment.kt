@@ -64,13 +64,15 @@ class EditMessageFragment(m: MessageEntity) : Fragment() {
     }
 
     private fun onSendFABClicked() {
-        message.type = "OUTBOUND" // mailSyncService will look for this and attempt to transmit
-        message.folder = "OUTBOX"
+        message.type = "OUTBOUND"   // mailSyncService will look for this and attempt to transmit
+        message.folder = "OUTBOX"   // mailSyncService will look for this and generate fragments
+        message.isShadow = false
         message.subject = subjectField.text.toString()
         message.body = bodyField.text.toString()
         message.recipient = toField.text.toString()
         message.sender = fromField.text.toString()
         message.fingerprint = md5(message.body + Date().toString() + message.subject + message.recipient).toHex().substring(0,8)
+
 
         try {
             app.database.messageDao().insert(message)
