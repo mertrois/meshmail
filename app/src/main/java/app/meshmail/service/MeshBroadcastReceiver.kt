@@ -3,6 +3,7 @@ package app.meshmail.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.icu.lang.UCharacter.GraphemeClusterBreak.L
 import android.util.Log
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
@@ -16,6 +17,8 @@ import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageT
 import app.meshmail.data.protobuf.MessageFragmentOuterClass.MessageFragment
 import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
+import com.geeksville.mesh.MessageStatus
+import com.geeksville.mesh.NodeInfo
 
 
 class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
@@ -23,23 +26,27 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private val meshServiceManager: MeshServiceManager by lazy { (context as MeshmailApplication).meshServiceManager }
     private val meshMailApplication: MeshmailApplication = context as MeshmailApplication
 
+
+
     override fun onReceive(context: Context, intent: Intent) {
         when(intent.action){
             "com.geeksville.mesh.NODE_CHANGE" -> {
-                // val ni: NodeInfo = intent.getParcelableExtra("com.geeksville.mesh.NodeInfo")!!
+                val ni: NodeInfo? = intent.getParcelableExtra("com.geeksville.mesh.NodeInfo")
+                Log.d("MeshBroadcastReceiver", "Node info: ${ni?.lastHeard}")
             }
             "com.geeksville.mesh.MESH_CONNECTED" -> {
-                //val extra = intent.getStringExtra("com.geeksville.mesh.Connected")!!
-                // extra will just be "CONNECTED" or "DISCONNECTED"
+                val extra: String? = intent.getStringExtra("com.geeksville.mesh.Connected")!!
+                Log.d("MeshBroadcastReceiver", "Mesh connected: $extra")
             }
             "com.geeksville.mesh.MESSAGE_STATUS" -> {
-                //val extra: MessageStatus = intent.getParcelableExtra("com.geeksville.mesh.Status")!!
+                val extra: MessageStatus? = intent.getParcelableExtra("com.geeksville.mesh.Status")
+                Log.d("MeshBroadcastReceiver", "Message Status: $extra")
             }
             "com.geeksville.mesh.RECEIVED.${Parameters.MESHMAIL_PORT}" -> {
                 val act = intent.action ?: ""
                 try {
-                    val data: DataPacket = intent.getParcelableExtra("com.geeksville.mesh.Payload")!!
-                    val pbProtocolMessage = ProtocolMessageOuterClass.ProtocolMessage.parseFrom(data.bytes)
+                    val data: DataPacket? = intent.getParcelableExtra("com.geeksville.mesh.Payload")
+                    val pbProtocolMessage = ProtocolMessage.parseFrom(data?.bytes)
 
                     try {
                         when (pbProtocolMessage.pmtype) {
@@ -78,6 +85,17 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private fun handleShadowBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {
         val pbMessageShadow: MessageShadowOuterClass.MessageShadow = pbProtocolMessage.messageShadow
 
+        Log.d("MeshBroadcastReceiver",
+            pbMessageShadow.let { ms ->
+                /* just for debugging */
+                val sb = StringBuilder()
+                sb.appendLine("Received new Shadow:")
+                sb.appendLine("Subject: ${ms.subject}")
+                sb.appendLine("Fingerprint: ${ms.fingerprint}")
+                sb.appendLine("Num fragments: ${ms.nFragments}")
+                sb.toString()
+            })
+
         // if client, see if there is a message in the DB with the fingerprint
         // if not, add this message with shadow = true, filling in as much as we know
         // does it really even matter if it's the client? wouldn't it apply to any device?
@@ -98,22 +116,8 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                                                 // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
             database.messageDao().insert(newMessage)
         } else {
-            Log.d("MeshBroadcastReceiver","Duplicate shadow broadcast received ${pbMessageShadow.fingerprint}")
+            Log.d("MeshBroadcastReceiver","Duplicate shadow broadcast received ${pbMessageShadow.fingerprint}. Will not add to db.")
         }
-
-        // we want to have a service running on the client that gets notified when new messages
-        // are created... it can see which fragments are missing, put fragment requests in a queue
-        // and start sending.
-        Log.d("MeshBroadcastReceiver",
-        pbMessageShadow.let { ms ->
-            /* just for debugging */
-            val sb = StringBuilder()
-            sb.appendLine("Received new Shadow:")
-            sb.appendLine("Subject: ${ms.subject}")
-            sb.appendLine("Fingerprint: ${ms.fingerprint}")
-            sb.appendLine("Num fragments: ${ms.nFragments}")
-            sb.toString()
-        })
 
         meshMailApplication.fragmentSyncService?.nudge("handleShadowBroadcast")
         meshServiceManager.nudge()
@@ -142,9 +146,9 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         pbProtocolMessageOut.pmtype = ProtocolMessageType.FRAGMENT_BROADCAST
         val pbMessageFragment = MessageFragment.newBuilder()
         pbMessageFragment.fingerprint = messageFragmentEntity.fingerprint
-        pbMessageFragment.m           = messageFragmentEntity.m!!
-        pbMessageFragment.n           = messageFragmentEntity.n!!
-        pbMessageFragment.payload     = messageFragmentEntity.data?.toByteString()
+        pbMessageFragment.m           = messageFragmentEntity.m
+        pbMessageFragment.n           = messageFragmentEntity.n
+        pbMessageFragment.payload     = messageFragmentEntity.data.toByteString()
         pbProtocolMessageOut.messageFragment = pbMessageFragment.build()
         val pbProtocolMessageBytes: ByteArray = pbProtocolMessageOut.build().toByteArray()
         // send it

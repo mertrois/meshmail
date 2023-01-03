@@ -1,18 +1,24 @@
 package app.meshmail.service
 
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.android.Parameters.Companion.FRAG_SYNC_SHADOWS_TO_ANALYZE
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
+import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
-import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragmentRequest
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
@@ -48,12 +54,37 @@ class MessageFragmentSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+
+        val chan = NotificationChannel(
+            "MFSS",
+            "Meshmail FragmentSyncService",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        chan.lockscreenVisibility = NotificationCompat.VISIBILITY_SECRET
+
+        val manager: NotificationManager = (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+        manager.createNotificationChannel(chan)
+
+        val notificationBuilder: NotificationCompat.Builder = NotificationCompat.Builder(this, "MFSS")
+
+        val notification: Notification = notificationBuilder.setOngoing(true)
+            .setContentTitle("Meshmail FragmentSync")
+            .setPriority(NotificationManager.IMPORTANCE_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setChannelId("MFSS")
+            .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
+            .build()
+
+        // Start the service in the foreground
+        startForeground(1, notification)
+
         return START_STICKY
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        stopForeground(true)
         scheduledExecutor?.shutdown()
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent): IBinder? {
@@ -92,17 +123,18 @@ class MessageFragmentSyncService : Service() {
             syncRunning = false
             return
         }
-        // get a list of messages that are shadows
-        //val shadowMessages: List<MessageEntity> = database.messageDao().getAllShadows()  // old way of doing it causing excessive collisions
+        // get a limited list of messages that are shadows
         val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(FRAG_SYNC_SHADOWS_TO_ANALYZE)
         // for each shadow message, get a list of missing fragments
-        for(message in shadowMessages) { // breadth first request one frag for each shadow round robin
+        for(message in shadowMessages) {
+            // set of integers representing all the fragments needed for a message
             val neededFragments = (0 until message.nFragments).toMutableSet()
             val fragments: List<MessageFragmentEntity> = database.messageFragmentDao().getAllFragmentsOfMessage(message.fingerprint)
+            // now subtract the ones we have, leaving the ones we still need
             for(fragment in fragments) {
                 neededFragments.remove(fragment.m)
             }
-            // send a fragment request for the first missing one
+
             var fragsAdded = 0
             if(neededFragments.isNotEmpty()) {
                 for(frag in neededFragments) {
@@ -110,6 +142,7 @@ class MessageFragmentSyncService : Service() {
                         break
                     val pbProtocolMessage = ProtocolMessage.newBuilder()
                     pbProtocolMessage.pmtype = ProtocolMessageType.FRAGMENT_REQUEST
+
                     val pbMessageFragmentRequest = MessageFragmentRequest.newBuilder()
                     pbMessageFragmentRequest.m = frag
                     pbMessageFragmentRequest.fingerprint = message.fingerprint

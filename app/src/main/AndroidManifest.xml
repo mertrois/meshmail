@@ -29,8 +29,13 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-        <service android:name="app.meshmail.service.MailSyncService" />
-        <service android:name="app.meshmail.service.MessageFragmentSyncService" />
+        <service
+            android:name="app.meshmail.service.MailSyncService"
+            android:foregroundServiceType="dataSync"/>
+
+        <service
+            android:name="app.meshmail.service.MessageFragmentSyncService"
+            android:foregroundServiceType="dataSync"/>
 
     </application>
     <queries>

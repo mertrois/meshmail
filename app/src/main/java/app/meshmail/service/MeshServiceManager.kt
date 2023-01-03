@@ -64,8 +64,11 @@ class MeshServiceManager(context: Application) {
     private fun sendFromQueue() {
         if(packetQ.isNotEmpty()) {
             val sdp = packetQ.poll()
-            val dp = DataPacket(to=sdp.to, bytes=sdp.data, dataType=sdp.dataType)
-            sendNow(dp)
+            sdp?.also {
+                val dp = DataPacket(to = it.to, bytes = it.data, dataType = it.dataType)
+                sendNow(dp)
+            }
+
         }
     }
 

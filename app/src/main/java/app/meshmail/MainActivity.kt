@@ -1,6 +1,7 @@
 package app.meshmail
 
 import android.content.*
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.os.IBinder
 import androidx.appcompat.app.AppCompatActivity
@@ -106,9 +107,12 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         setContentView(R.layout.activity_main)
 
+        // for now lock to portrait
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
         // todo: remove; only for dev. Clean up before running.
-         database.messageDao().deleteAll()
-         database.messageFragmentDao().deleteAll()
+//      database.messageDao().deleteAll()
+//      database.messageFragmentDao().deleteAll()
 
         // load initial fragment based on mode the app is in
         supportFragmentManager
@@ -129,8 +133,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             while scree off/activity closed, etc.
          */
         registerReceiver(receiver, intentFilter)
-        Intent(this, MailSyncService::class.java).also { intent -> startService(intent)}
-        Intent(this, MessageFragmentSyncService::class.java).also { intent -> startService(intent)}
+        Intent(this, MailSyncService::class.java).also { intent ->  startForegroundService(intent)}
+        Intent(this, MessageFragmentSyncService::class.java).also { intent -> startForegroundService(intent)}
 
         val appType: String = if(prefs.getBoolean("relay_mode")) "relay" else "client"
         supportActionBar?.title = "Meshmail — $appType"

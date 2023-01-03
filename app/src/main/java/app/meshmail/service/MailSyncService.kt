@@ -1,10 +1,17 @@
 package app.meshmail.service
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import app.meshmail.MeshmailApplication
+import app.meshmail.R
 import app.meshmail.android.Parameters
 import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
@@ -23,6 +30,7 @@ import java.util.concurrent.TimeUnit
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
+import javax.mail.search.FlagTerm
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
@@ -53,12 +61,45 @@ class MailSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        val chan = NotificationChannel(
+            "app.meshmail.ESS",
+            "Meshmail EmailSyncService",
+            NotificationManager.IMPORTANCE_LOW
+        )
+        chan.lightColor = Color.BLUE
+        chan.lockscreenVisibility = NotificationCompat.VISIBILITY_SECRET
+
+        val manager: NotificationManager = (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+        manager.createNotificationChannel(chan)
+
+        val notificationBuilder: NotificationCompat.Builder = NotificationCompat.Builder(this, "MFSS")
+
+        val notification: Notification = notificationBuilder.setOngoing(true)
+            .setContentTitle("Meshmail Email Sync Service")
+            .setPriority(NotificationManager.IMPORTANCE_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setChannelId("app.meshmail.ESS")
+            .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
+            .build()
+
+        //startForeground(1, notification)
+
+//        val notification = NotificationCompat.Builder(this)
+//            .setContentTitle("Meshmail FragmentSyncService")
+//            .setContentText("Running in the foreground")
+//            .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
+//            .build()
+
+        // Start the service in the foreground
+        startForeground(1, notification)
+
         return START_STICKY
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        stopForeground(true)
         scheduledExecutor!!.shutdown()
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent): IBinder? {
@@ -106,8 +147,8 @@ class MailSyncService : Service() {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
 
-            inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
-            //inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
+            //inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
+            inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
             null
@@ -180,12 +221,9 @@ class MailSyncService : Service() {
         }
     }
 
-
     /*
-
         Take a list of javamail messages and store them as MessageEntity, including generating their fragments
         to be sync'ed
-
      */
     private fun storeMessages(messages: Array<Message>) {
         for (msg in messages) {
@@ -197,14 +235,13 @@ class MailSyncService : Service() {
                 val msgEnt = javamailMessageToMessageEntity(msg)
                 // store the message entity (including its fragments)
                 storeMessageEntity(msgEnt)
+                msg.setFlag(Flags.Flag.SEEN, true)
                 // finally broadcast the existence of this message to the network
                 broadcastMessageShadow(msgEnt, "initial")
             } else {
                 Log.d(this.javaClass.name, "message already exists in database")
             }
-            // todo: make storeMessageEntity return status of transaction, if success, then we can set the flag as seen.
-            // should only clear this flag if it's in the database. adding may have failed. check for exceptions
-            // msg.setFlag(Flags.Flag.SEEN, true) // only do this if successfully entered into database
+
         }
     }
 
