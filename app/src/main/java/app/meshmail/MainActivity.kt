@@ -123,7 +123,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             Log.e("MainActivity","Error binding", e)
         }
 
-        /* todo: make all the services run in background, not tied to activity lifecycle
+        /*
+        todo: make all the services run in background, not tied to activity lifecycle
             to continue syncing mail and/or message fragments and protocol messages
             while scree off/activity closed, etc.
          */

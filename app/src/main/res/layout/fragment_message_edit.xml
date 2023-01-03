@@ -52,7 +52,7 @@
                 android:focusedByDefault="true"
                 android:freezesText="true"
                 android:gravity="start|left"
-                android:inputType="textMultiLine|textAutoComplete"
+                android:inputType="textAutoCorrect|textMultiLine|textAutoComplete"
                 android:maxLines="100000"
                 android:minLines="1"
                 android:paddingHorizontal="2dp" />

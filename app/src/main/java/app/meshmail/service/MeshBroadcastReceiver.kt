@@ -84,6 +84,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         // since fingerprint should be reasonably unique?
         if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
             val newMessage = MessageEntity()
+            // fixme: need to set folder based on type
             newMessage.folder = "INBOX" // this ensures fragments will show up in inbox (with progress bar)
             // when inflated to non-shadow messages, type will come through and folder will be set appropriately
             // remove to hide shadows from the inbox.

@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
-import javax.mail.search.FlagTerm
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
@@ -51,19 +50,6 @@ class MailSyncService : Service() {
             Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
-
-        // todo: create a flowable query here... that listens for newly inserted messages with hasBeenRequested = false
-        // either inbound or outbound...
-
-//        val unrequestedMessages = database.messageDao().getUnrequestedMessagesFlowable()
-//        val subResult = unrequestedMessages.subscribe { messageEntities ->
-//            Log.d("MailSyncService", "got ${messageEntities.size} new messages via flowable")
-//            for(message in messageEntities) {
-//                Log.d("MailSyncService", "Flowable: ${message.subject}")
-//                broadcastMessageShadow(message)
-//            }
-//        }
-
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -89,15 +75,12 @@ class MailSyncService : Service() {
             if (emails != null)
                 storeMessages(emails)
 
-            val sendableMessages = database.messageDao().getMessagesReadyToSend()
+            // relay-side; get OUTBOUND, non-shadow, non-sent messages, pass to smtp
+            val sendableMessages = database.messageDao().getReadyToSendMessages()
             for(message in sendableMessages) {
                 sendMessageViaSMTP(message)
             }
         } else {    // client
-            /*
-                find messages in the outbox, fragment them so that the daemon will start sending shadows
-                todo: make this a live query so process happens instantaneously
-             */
             Log.d(this.javaClass.name, "client checking for messages in outbox...")
             handleOutboxMessages()
         }
@@ -133,7 +116,6 @@ class MailSyncService : Service() {
 
 
     private fun sendMessageViaSMTP(message: MessageEntity) {
-        // todo: actually send via smtp
         Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
 
         val senderName = prefs.getString("sender_name")
@@ -158,6 +140,13 @@ class MailSyncService : Service() {
             email.addRecipient(Message.RecipientType.TO, InternetAddress(message.recipient))
             email.subject = message.subject
             email.setText(message.body)
+
+            // if an outbound message has a serverId set, it's because it is a reply, and we need to set
+            // the appropriate headers before giving it to the smtp server
+            if(message.serverId != null && message.serverId != "") {
+                email.setHeader("In-Reply-To", message.serverId)
+                email.setHeader("References", message.serverId)
+            }
 
             Transport.send(email)
             Log.d("MailSyncService","mail sent successfully")
