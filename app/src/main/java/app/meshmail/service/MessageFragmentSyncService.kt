@@ -26,6 +26,7 @@ class MessageFragmentSyncService : Service() {
         (application as MeshmailApplication).database
     }
     private var future: ScheduledFuture<*>? = null
+    private var syncRunning = false
 
     override fun onCreate() {
         super.onCreate()
@@ -38,7 +39,7 @@ class MessageFragmentSyncService : Service() {
     }
 
     private fun scheduleImmediate() {
-        future = scheduledExecutor!!.scheduleWithFixedDelay(
+        future = scheduledExecutor?.scheduleWithFixedDelay(
             { runSync() },
             0,
             Parameters.FRAGMENT_SYNC_PERIOD,
@@ -47,13 +48,12 @@ class MessageFragmentSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        //Toast.makeText(this, "ViewMessageFragment sync service starting", Toast.LENGTH_SHORT).show()
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        scheduledExecutor!!.shutdown()
+        scheduledExecutor?.shutdown()
     }
 
     override fun onBind(intent: Intent): IBinder? {
@@ -65,8 +65,12 @@ class MessageFragmentSyncService : Service() {
      */
     fun nudge(source: String="") {
         Log.d("MessageFragmentSyncService","nudged by $source")
-        future?.cancel(false).also {
-            scheduleImmediate()
+        if(syncRunning == true)
+            return
+        else {
+            if(future?.cancel(false) == true) {
+                scheduleImmediate()
+            }
         }
     }
 
@@ -80,18 +84,17 @@ class MessageFragmentSyncService : Service() {
         to get a fragment re-requested...
      */
     private fun runSync() {
-
+        syncRunning = true
         // if the radio queue already has a bunch of packets, and the queue strips out duplicates
         // don't bother running right now, it's just extra cycles.
         if(! meshServiceManager.queueEmpty()) {
             l("Queue still full (${meshServiceManager.queueSize()}), not adding new fragment requests.")
+            syncRunning = false
             return
         }
         // get a list of messages that are shadows
         //val shadowMessages: List<MessageEntity> = database.messageDao().getAllShadows()  // old way of doing it causing excessive collisions
-        val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(
-            FRAG_SYNC_SHADOWS_TO_ANALYZE
-        )
+        val shadowMessages: List<MessageEntity> = database.messageDao().getShadowsWithLimit(FRAG_SYNC_SHADOWS_TO_ANALYZE)
         // for each shadow message, get a list of missing fragments
         for(message in shadowMessages) { // breadth first request one frag for each shadow round robin
             val neededFragments = (0 until message.nFragments).toMutableSet()
@@ -122,6 +125,8 @@ class MessageFragmentSyncService : Service() {
                 database.attemptToReconstituteMessage(message)
             }
         }
+        syncRunning = false
+        return
     }
 
 }
