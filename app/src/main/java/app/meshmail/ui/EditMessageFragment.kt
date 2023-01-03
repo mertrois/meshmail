@@ -18,7 +18,7 @@ import app.meshmail.util.toHex
 import java.util.*
 
 
-class EditMessageFragment(message: MessageEntity) : Fragment() {
+class EditMessageFragment(m: MessageEntity) : Fragment() {
     private lateinit var app: MeshmailApplication
     private lateinit var prefs: PrefsManager
     private lateinit var fromField: EditText
@@ -26,7 +26,8 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
     private lateinit var subjectField: EditText
     private lateinit var bodyField: EditText
     private lateinit var sendFAB: FloatingActionButton
-    private val message = message
+    private val message: MessageEntity = MessageEntity( subject=m.subject, recipient = m.recipient, body=m.body,
+                                                        serverId=m.serverId, receivedDate = m.receivedDate, folder= m.folder)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -57,21 +58,29 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
         formatBodyForReply()
 
         sendFAB = view.findViewById(R.id.fabSend)
-        sendFAB.setOnClickListener {
-            message.type = "OUTBOUND" // mailSyncService will look for this and attempt to transmit
-            message.folder = "OUTBOX"
-            message.subject = subjectField.text.toString()
-            message.body = bodyField.text.toString()
-            message.recipient = toField.text.toString()
-            message.sender = fromField.text.toString()
-            message.fingerprint = md5(message.body + Date().toString() + message.subject + message.recipient).toHex().substring(0,8)
-            app.database.messageDao().insert(message)
-            Toast.makeText(app, "Message enqueued for transmission", Toast.LENGTH_SHORT).show()
-            activity?.supportFragmentManager?.popBackStack()
-        }
+        sendFAB.setOnClickListener { onSendFABClicked() }
 
         return view
     }
+
+    private fun onSendFABClicked() {
+        message.type = "OUTBOUND" // mailSyncService will look for this and attempt to transmit
+        message.folder = "OUTBOX"
+        message.subject = subjectField.text.toString()
+        message.body = bodyField.text.toString()
+        message.recipient = toField.text.toString()
+        message.sender = fromField.text.toString()
+        message.fingerprint = md5(message.body + Date().toString() + message.subject + message.recipient).toHex().substring(0,8)
+
+        try {
+            app.database.messageDao().insert(message)
+            Toast.makeText(app, "Message enqueued for transmission", Toast.LENGTH_SHORT).show()
+        } catch(e: Exception) {
+            Toast.makeText(app, "Error sending message", Toast.LENGTH_SHORT).show()
+        }
+        activity?.supportFragmentManager?.popBackStack()
+    }
+
 
     @SuppressLint("SetTextI18n")
     private fun formatBodyForReply() {
