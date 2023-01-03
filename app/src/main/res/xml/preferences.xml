@@ -16,7 +16,8 @@
         android:key="identity_preference_category"
         android:title="Sender Identity">
         <EditTextPreference
-            android:defaultValue=""
+            android:defaultValue="--
+            Sent off-grid with Meshmail.app"
             android:key="sender_name"
             android:selectAllOnFocus="true"
             android:singleLine="true"
@@ -31,7 +32,16 @@
             android:title="Sender Email"
             app:icon="@drawable/alternate_email_24px"
             app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="sender_signature"
+            android:selectAllOnFocus="true"
+            android:singleLine="false"
+            android:title="Signature"
+            app:icon="@drawable/gesture_24px"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
+
 
     <PreferenceCategory
         android:key="imap_preference_category"

@@ -52,7 +52,8 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
         var subj = if(isReply()) "Re: " else ""
         subjectField.setText(subj + message.subject)
 
-        bodyField.setText(message.body)
+        val sig = prefs.getString("sender_signature")
+        bodyField.setText(sig)
         formatBodyForReply()
 
         sendFAB = view.findViewById(R.id.fabSend)
@@ -74,8 +75,9 @@ class EditMessageFragment(message: MessageEntity) : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun formatBodyForReply() {
+        val sig = prefs.getString("sender_signature")
         if(isReply()) { // only reformat if it's a reply
-            bodyField.setText("""
+            bodyField.setText("""$sig
 
 
 ===== On ${message.receivedDate} ${message.recipient} wrote: =====

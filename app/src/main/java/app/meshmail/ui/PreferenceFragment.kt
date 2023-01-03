@@ -3,6 +3,7 @@ package app.meshmail.ui
 
 import android.os.Bundle
 import android.view.*
+import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -14,6 +15,13 @@ class PreferenceFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
+        val imapPasswordPref = findPreference<EditTextPreference>("imap_password")
+        val smtpPasswordPref = findPreference<EditTextPreference>("smtp_password")
+        val dotSumProvider = Preference.SummaryProvider<EditTextPreference>() {
+            "•".repeat(it.text?.length ?: 0)
+        }
+        imapPasswordPref?.summaryProvider = dotSumProvider
+        smtpPasswordPref?.summaryProvider = dotSumProvider
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -49,7 +57,7 @@ class PreferenceFragment : PreferenceFragmentCompat() {
         val idPreferenceCategory = findPreference<PreferenceCategory>("identity_preference_category")
         imapPreferenceCategory?.isEnabled = isEnabled
         smtpPreferenceCategory?.isEnabled = isEnabled
-        idPreferenceCategory?.isEnabled = isEnabled
+        idPreferenceCategory?.isEnabled =  !isEnabled
     }
 
 }
