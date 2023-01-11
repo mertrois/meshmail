@@ -6,7 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.MutableLiveData
+import app.meshmail.MeshmailApplication
 import app.meshmail.R
+import app.meshmail.data.StatusManager
+import app.meshmail.service.MeshServiceManager
+import com.google.android.material.textfield.TextInputEditText
 import java.util.*
 
 /*
@@ -16,6 +21,9 @@ import java.util.*
  */
 class StatusRelayFragment : Fragment() {
 
+    lateinit var statusManager: StatusManager
+
+    lateinit var imapStatusView: TextInputEditText
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -28,34 +36,33 @@ class StatusRelayFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Update the uptime, CPU usage, memory usage, and disk usage
-        // text views with the current values
-        view.findViewById<TextView>(R.id.text_uptime).text = "Uptime: ${getUptime()} "
-        view.findViewById<TextView>(R.id.text_last_contact).text = "Last Client Contact: ${getLastContact()} minutes ago"
-        view.findViewById<TextView>(R.id.imap_server_status).text = "IMAP Server: ${getIMAPStatus()}"
-        view.findViewById<TextView>(R.id.smtp_server_status).text = "SMTP Server: ${getSMTPStatus()}"
+        statusManager = (requireContext().applicationContext as MeshmailApplication).statusManager
+
+        imapStatusView = view.findViewById<TextInputEditText>(R.id.imap_server_status)
+
+        statusManager.imapStatus.observe(viewLifecycleOwner) { newString ->
+            imapStatusView.setText(newString)
+        }
+
+
+        view.findViewById<TextView>(R.id.last_client_contact).text = getLastContact()
+        view.findViewById<TextView>(R.id.smtp_queue_size).text = "6"
+
+        view.findViewById<TextView>(R.id.smtp_server_status).text = getSMTPStatus()
     }
 
     // todo: add another for the status of the meshtastic service "not found-->did you install meshtastic?" is it running?
 
-    private fun getUptime(): String {
-        // TODO: Implement this method to return the uptime as a string
-        return "0 days 0 hours 0 minutes"
+
+    private fun getLastContact(): String {
+        return "45s ago"
     }
 
-    private fun getLastContact(): Int {
-        // todo: return last contact with a client
-        return 0
-    }
 
-    private fun getIMAPStatus(): Int {
-        // TODO: IMAP server status
-        return 0
-    }
 
-    private fun getSMTPStatus(): Int {
-        // TODO: SMTP server status
-        return 0
+    private fun getSMTPStatus(): String {
+        return "No activity"
     }
 
 }
+

@@ -17,6 +17,7 @@ import app.meshmail.android.PrefsManager
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
+import app.meshmail.data.StatusManager
 import app.meshmail.data.protobuf.MessageOuterClass
 import app.meshmail.data.protobuf.MessageShadowOuterClass.MessageShadow
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
@@ -47,6 +48,10 @@ class MailSyncService : Service() {
 
     private val prefs: PrefsManager by lazy {
         (application as MeshmailApplication).prefs
+    }
+
+    private val statusManager: StatusManager by lazy {
+        (application as MeshmailApplication).statusManager
     }
 
     override fun onCreate() {
@@ -82,13 +87,7 @@ class MailSyncService : Service() {
             .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
             .build()
 
-        //startForeground(1, notification)
 
-//        val notification = NotificationCompat.Builder(this)
-//            .setContentTitle("Meshmail FragmentSyncService")
-//            .setContentText("Running in the foreground")
-//            .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
-//            .build()
 
         // Start the service in the foreground
         startForeground(1, notification)
@@ -146,11 +145,12 @@ class MailSyncService : Service() {
 
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
-
+            statusManager.setImapStatus(true,"")
             //inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
             inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
+            statusManager.setImapStatus(false, e.toString())
             null
         }
     }
