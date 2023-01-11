@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         setContentView(R.layout.activity_main)
 
-        // for now lock to portrait
+        // lock to portrait until code to recreate state of fragments can be completed
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         // todo: remove; only for dev. Clean up before running.

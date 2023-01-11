@@ -14,7 +14,7 @@ import com.geeksville.mesh.IMeshService
 class MeshmailApplication : Application() {
 
     lateinit var prefs: PrefsManager
-    var statusManager: StatusManager = StatusManager(this)
+    var statusManager: StatusManager = StatusManager()
     var meshService: IMeshService? = null
     val meshServiceManager: MeshServiceManager = MeshServiceManager(this)
     var fragmentSyncService: MessageFragmentSyncService? = null
@@ -32,6 +32,7 @@ class MeshmailApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         prefs = PrefsManager(this)
+        statusManager.startUpdateThread()
     }
 
 }

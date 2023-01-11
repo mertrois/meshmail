@@ -1,6 +1,7 @@
 package app.meshmail.ui
 
 import android.os.Bundle
+import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +26,8 @@ class StatusRelayFragment : Fragment() {
 
     lateinit var imapStatusView: TextInputEditText
 
+
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -40,29 +43,24 @@ class StatusRelayFragment : Fragment() {
 
         imapStatusView = view.findViewById<TextInputEditText>(R.id.imap_server_status)
 
-        statusManager.imapStatus.observe(viewLifecycleOwner) { newString ->
+        statusManager.imapStatus.renderedValue.observe(viewLifecycleOwner) { newString ->
             imapStatusView.setText(newString)
         }
 
 
-        view.findViewById<TextView>(R.id.last_client_contact).text = getLastContact()
+        view.findViewById<TextView>(R.id.last_client_contact).text = ""
         view.findViewById<TextView>(R.id.smtp_queue_size).text = "6"
 
-        view.findViewById<TextView>(R.id.smtp_server_status).text = getSMTPStatus()
+        view.findViewById<TextView>(R.id.smtp_server_status).text = ""
     }
 
     // todo: add another for the status of the meshtastic service "not found-->did you install meshtastic?" is it running?
 
-
-    private fun getLastContact(): String {
-        return "45s ago"
+    override fun onDestroyView() {
+        super.onDestroyView()
+        statusManager.imapStatus.renderedValue.removeObservers(viewLifecycleOwner)
     }
 
-
-
-    private fun getSMTPStatus(): String {
-        return "No activity"
-    }
 
 }
 

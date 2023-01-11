@@ -145,12 +145,12 @@ class MailSyncService : Service() {
 
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
-            statusManager.setImapStatus(true,"")
+            statusManager.imapStatus.setStatus(true)
             //inbox.messages // simpler method, gets everything even those that have been seen; use for debugging.
             inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))  // gets only unseen (new) messages
         } catch(e: Exception) {
             Log.e(this.javaClass.toString(), "error checking mail or storing in db", e)
-            statusManager.setImapStatus(false, e.toString())
+            statusManager.imapStatus.setStatus(false, "Error checking mail", e.toString())
             null
         }
     }
