@@ -157,6 +157,7 @@ class MailSyncService : Service() {
 
 
     private fun sendMessageViaSMTP(message: MessageEntity) {
+        statusManager.smtpStatus.setStatus(null, "Connecting to server")
         Log.d("MailSyncService", "Sending via SMTP: ${message.fingerprint}")
 
         val senderName = prefs.getString("sender_name")
@@ -191,10 +192,13 @@ class MailSyncService : Service() {
 
             Transport.send(email)
             Log.d("MailSyncService","mail sent successfully")
+            statusManager.smtpStatus.setStatus(true, "Message successfully sent")
             message.hasBeenSent = true
+            message.folder = "SENT"
             database.messageDao().update(message)
         } catch (e: MessagingException) {
             Log.e("MailSyncService","Message failed to send", e)
+            statusManager.smtpStatus.setStatus(false, "Error sending message", e.toString())
             // todo: update the message in the db to indicate there was a problem; sort by types
             // if it was, for example server not reachable, we want to try again later...
             // if malformed address, send message back to client over mesh

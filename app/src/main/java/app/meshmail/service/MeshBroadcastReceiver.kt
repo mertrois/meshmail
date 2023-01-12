@@ -10,6 +10,7 @@ import app.meshmail.android.Parameters
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.data.MessageFragmentEntity
+import app.meshmail.data.StatusManager
 import app.meshmail.data.protobuf.*
 import com.geeksville.mesh.DataPacket
 import com.google.protobuf.kotlin.toByteString
@@ -25,7 +26,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
     private val database: MeshmailDatabase by lazy { (context as MeshmailApplication).database }
     private val meshServiceManager: MeshServiceManager by lazy { (context as MeshmailApplication).meshServiceManager }
     private val meshMailApplication: MeshmailApplication = context as MeshmailApplication
-
+    private val statusManager: StatusManager by lazy { (context as MeshmailApplication).statusManager }
 
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -121,6 +122,10 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
 
         meshMailApplication.fragmentSyncService?.nudge("handleShadowBroadcast")
         meshServiceManager.nudge()
+
+        // log contact from counterpart. If this is the relay, this is incoming mail from client
+        // if this is the client, this would be contact from the relay, but it won't be displayed anywhere.
+        statusManager.lastContact.setStatus(true)
     }
 
     private fun handleFragmentRequest(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {
@@ -155,6 +160,9 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         meshServiceManager.enqueueForSending(pbProtocolMessageBytes)
         meshServiceManager.nudge()
 
+        // log contact from client
+        statusManager.lastContact.setStatus(true)
+
         // debugging
         Log.d("MeshBroadcastReceiver",
         return pbMessageFragmentRequest.let { req ->
@@ -165,6 +173,8 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             sb.appendLine("Frag num: ${req.m}")
             sb.toString()
         })
+
+
     }
 
     private fun handleFragmentBroadcast(pbProtocolMessage: ProtocolMessageOuterClass.ProtocolMessage) {

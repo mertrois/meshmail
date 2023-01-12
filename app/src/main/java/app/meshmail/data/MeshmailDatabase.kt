@@ -82,6 +82,7 @@ abstract class MeshmailDatabase : RoomDatabase() {
                     message.folder = "INBOX"        // mark as inbox so it shows up.
                 } else if(message.type == "OUTBOUND") {   // this receiver is running on the relay.
                     message.hasBeenSent = false             // just arrived, so hasn't been sent via smtp server yet.
+                    message.folder = "OUTBOX"
                 }
 
                 messageDao().update(message)

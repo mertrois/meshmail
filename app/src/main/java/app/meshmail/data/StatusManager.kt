@@ -7,11 +7,20 @@ import java.util.Date
 class StatusManager() {
 
     var imapStatus: IMAPStatusInstance = IMAPStatusInstance()
+    var smtpStatus: SMTPStatusInstance = SMTPStatusInstance()
+    var lastContact: LastContactStatusInstance = LastContactStatusInstance()
 
     val handler = Handler()
+
+    init {
+        // nothing
+    }
+
     private val runnable = object: Runnable {
         override fun run() {
             imapStatus.renderStatusString()
+            smtpStatus.renderStatusString()
+            lastContact.renderStatusString()
             handler.postDelayed(this, 1000)
         }
     }
@@ -21,18 +30,24 @@ class StatusManager() {
     }
 }
 
+/*
+    If logicalStatus is null, then status is undefined i.e. don't know
+    true means operational
+    false means error
+    todo: move time, status, exception, message into constructor to be able to initialize from prefs file
+ */
 open class StatusInstance(initialValue: String = "") {
-    protected var timeUpdated: Date? = null
+    var timeUpdated: Date? = null
     public var renderedValue: MutableLiveData<String> = MutableLiveData<String>(initialValue)
-    protected var logicalStatus: Boolean? = null
-    protected var exception: String? = null
-    protected var message: String? = null
+    var logicalStatus: Boolean? = null
+    var exception: String? = null
+    var message: String? = null
 
     init {
         renderStatusString()
     }
 
-    public fun setStatus(logic: Boolean, msg: String = "", ex: String? = null) {
+    fun setStatus(logic: Boolean?, msg: String = "", ex: String? = null) {
         timeUpdated = Date()
         logicalStatus = logic
         message = msg
@@ -40,23 +55,55 @@ open class StatusInstance(initialValue: String = "") {
         renderStatusString()
     }
 
+    /*
+        Todo: render anything < 5 sec ago as "just now" to prevent toggling between 0/1
+     */
+    fun getTimeDelta() : String {
+        val now = Date()
+        if(timeUpdated != null) {
+            val delta = now.time - timeUpdated!!.time
+            return "${delta/1000}s"
+        }
+        return ""
+    }
+
     open fun renderStatusString() {
         renderedValue.postValue("todo: override me")
     }
 }
 
+
+
+
 class IMAPStatusInstance : StatusInstance() {
     override fun renderStatusString() {
         var status = ""
-        val now = Date()
+
         if(logicalStatus != null) {
-            if(logicalStatus == true) status = "Succesfully checked "
+            if(logicalStatus == true) status = "Mail checked "
             else status = "failed "
         }
         if(timeUpdated != null) {
-            val delta = now.time - timeUpdated!!.time
-            status += "${delta/1000}s ago"
+            status += "${getTimeDelta()} ago"
         }
+        renderedValue.postValue(status)
+    }
+}
+
+class LastContactStatusInstance : StatusInstance() {
+    override fun renderStatusString() {
+        if(timeUpdated != null)
+            renderedValue.postValue("${getTimeDelta()} ago")
+    }
+}
+
+class SMTPStatusInstance : StatusInstance() {
+    override fun renderStatusString() {
+        var status = ""
+
+        if(message != null)
+            status += message
+
         renderedValue.postValue(status)
     }
 }

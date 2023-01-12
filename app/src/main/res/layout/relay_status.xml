@@ -9,6 +9,31 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:focusable="false"
+        android:hint="Last Contact with Client"
+        android:padding="5dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        app:boxBackgroundColor="@color/white"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusBottomEnd="5dp"
+        app:boxCornerRadiusBottomStart="5dp"
+        app:hintEnabled="true">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/last_client_contact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:editable="false"
+            android:focusable="false"
+            android:paddingTop="16dp"
+            android:text="unknown" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
         android:hint="IMAP Server Status"
         android:padding="5dp"
         android:paddingLeft="10dp"
@@ -26,8 +51,35 @@
             android:defaultFocusHighlightEnabled="false"
             android:editable="false"
             android:focusable="false"
+            android:hint="undefined"
             android:paddingTop="16dp"
-            android:text="Mail last checked 20s ago" />
+            android:text="idle" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="Messages Forwarded"
+        android:padding="5dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        app:boxBackgroundColor="@color/white"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusBottomEnd="5dp"
+        app:boxCornerRadiusBottomStart="5dp"
+        app:hintEnabled="true">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/messages_forwarded"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:editable="false"
+            android:focusable="false"
+            android:paddingTop="16dp"
+            android:text="0"
+            android:textIsSelectable="false" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -53,32 +105,7 @@
             android:editable="false"
             android:focusable="false"
             android:paddingTop="16dp"
-            android:text="Mail last checked 20s ago" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:hint="Total Messages Sent"
-        android:padding="5dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        app:boxBackgroundColor="@color/white"
-        app:boxBackgroundMode="outline"
-        app:boxCornerRadiusBottomEnd="5dp"
-        app:boxCornerRadiusBottomStart="5dp"
-        app:hintEnabled="true">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/smtp_messages_sent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:editable="false"
-            android:focusable="false"
-            android:paddingTop="16dp"
-            android:text="23" />
+            android:text="idle" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -102,7 +129,8 @@
             android:layout_height="wrap_content"
             android:editable="false"
             android:focusable="false"
-            android:text="2" />
+            android:paddingTop="16dp"
+            android:text="0" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -110,7 +138,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:focusable="false"
-        android:hint="Last Contact with Client"
+        android:hint="Messages Sent"
         android:padding="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -121,40 +149,18 @@
         app:hintEnabled="true">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/last_client_contact"
+            android:id="@+id/smtp_messages_sent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:editable="false"
             android:focusable="false"
             android:paddingTop="16dp"
-            android:text="30s ago" />
+            android:text="0" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:hint="Partially Forwarded Messages"
-        android:padding="5dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        app:boxBackgroundColor="@color/white"
-        app:boxBackgroundMode="outline"
-        app:boxCornerRadiusBottomEnd="5dp"
-        app:boxCornerRadiusBottomStart="5dp"
-        app:hintEnabled="true">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/messages_being_forwarded"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:editable="false"
-            android:focusable="false"
-            android:paddingTop="16dp"
-            android:text="6"
-            android:textIsSelectable="false" />
 
-    </com.google.android.material.textfield.TextInputLayout>
+
 
 </LinearLayout>

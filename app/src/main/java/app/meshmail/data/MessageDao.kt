@@ -31,7 +31,15 @@ interface MessageDao {
     @Query("select * from messages where type = 'OUTBOUND' and hasBeenSent = 0 and isShadow = 0")
     fun getReadyToSendMessages(): List<MessageEntity>
 
-    //@Query("select * from messages where isShadow = 0 and folder = :folder order by receivedDate DESC")
+    @Query("select count(*) from messages where type = 'OUTBOUND' and folder = 'OUTBOX' ")
+    fun getOutboxCount(): LiveData<Int>
+
+    @Query("select count(*) from messages where type = 'OUTBOUND' and hasBeenSent = 1 ")
+    fun getSentMessagesCount(): LiveData<Int>
+
+    @Query("select count(*) from messages where type = 'INBOUND'")
+    fun getInboundMessagesCount(): LiveData<Int>
+
     @Query("select * from messages where folder = :folder order by receivedDate DESC")
     fun getMessagesByFolderLive(folder: String): LiveData<List<MessageEntity>>
 
