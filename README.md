@@ -1,6 +1,6 @@
 ![Alt text](/images/logo_small.png?raw=true "logo")
 
-Meshmail is an application and protocol for sending and receiving email messages over a mesh network. It utilizes inexpensive LoRa radios running Meshtastic. 
+Meshmail is an application and protocol for sending and receiving email messages over a mesh network. It utilizes inexpensive LoRa radios running open source Meshtastic firmware.
 
 The app can be run in either client or relay mode: a relay has internet access and manages connections to IMAP and SMTP servers, while the client has only a connection to the mesh.
 
