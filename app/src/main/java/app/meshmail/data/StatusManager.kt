@@ -2,6 +2,8 @@ package app.meshmail.data
 
 import android.os.Handler
 import androidx.lifecycle.MutableLiveData
+
+
 import java.util.Date
 
 class StatusManager() {
@@ -13,14 +15,15 @@ class StatusManager() {
     val handler = Handler()
 
     init {
-        // nothing
+
     }
 
     private val runnable = object: Runnable {
         override fun run() {
             imapStatus.renderStatusString()
-            smtpStatus.renderStatusString()
             lastContact.renderStatusString()
+            smtpStatus.renderStatusString()
+
             handler.postDelayed(this, 1000)
         }
     }
@@ -36,12 +39,12 @@ class StatusManager() {
     false means error
     todo: move time, status, exception, message into constructor to be able to initialize from prefs file
  */
-open class StatusInstance(initialValue: String = "") {
+abstract class StatusInstance(initialValue: String = "") {
     var timeUpdated: Date? = null
     public var renderedValue: MutableLiveData<String> = MutableLiveData<String>(initialValue)
     var logicalStatus: Boolean? = null
     var exception: String? = null
-    var message: String? = null
+    var _message: String? = null
 
     init {
         renderStatusString()
@@ -50,7 +53,7 @@ open class StatusInstance(initialValue: String = "") {
     fun setStatus(logic: Boolean?, msg: String = "", ex: String? = null) {
         timeUpdated = Date()
         logicalStatus = logic
-        message = msg
+        _message = msg
         exception = ex
         renderStatusString()
     }
@@ -67,9 +70,7 @@ open class StatusInstance(initialValue: String = "") {
         return ""
     }
 
-    open fun renderStatusString() {
-        renderedValue.postValue("todo: override me")
-    }
+    abstract fun renderStatusString()
 }
 
 
@@ -78,14 +79,15 @@ open class StatusInstance(initialValue: String = "") {
 class IMAPStatusInstance : StatusInstance() {
     override fun renderStatusString() {
         var status = ""
-
         if(logicalStatus != null) {
-            if(logicalStatus == true) status = "Mail checked "
-            else status = "failed "
+            status = if(logicalStatus == true) "Mail checked " else "failed "
+            if(timeUpdated != null) {
+                status += "${getTimeDelta()} ago"
+            }
+        } else {
+            status = "idle"
         }
-        if(timeUpdated != null) {
-            status += "${getTimeDelta()} ago"
-        }
+
         renderedValue.postValue(status)
     }
 }
@@ -94,16 +96,15 @@ class LastContactStatusInstance : StatusInstance() {
     override fun renderStatusString() {
         if(timeUpdated != null)
             renderedValue.postValue("${getTimeDelta()} ago")
+        else
+            renderedValue.postValue("no contact yet")
     }
 }
 
 class SMTPStatusInstance : StatusInstance() {
     override fun renderStatusString() {
-        var status = ""
-
-        if(message != null)
-            status += message
-
+        var status = if(_message != null) _message else "idle"
         renderedValue.postValue(status)
     }
 }
+
