@@ -15,6 +15,9 @@ import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.*
 
 
@@ -73,13 +76,15 @@ class EditMessageFragment(m: MessageEntity) : Fragment() {
         message.sender = fromField.text.toString()
         message.fingerprint = md5(message.body + Date().toString() + message.subject + message.recipient).toHex().substring(0,8)
 
-
         try {
-            app.database.messageDao().insert(message)
+            CoroutineScope(Dispatchers.IO).launch {
+                app.database.messageDao().insert(message)
+            }
             Toast.makeText(app, "Message enqueued for transmission", Toast.LENGTH_SHORT).show()
         } catch(e: Exception) {
             Toast.makeText(app, "Error sending message", Toast.LENGTH_SHORT).show()
         }
+
         activity?.supportFragmentManager?.popBackStack()
     }
 

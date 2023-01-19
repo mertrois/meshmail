@@ -20,13 +20,15 @@ class MeshmailApplication : Application() {
     var fragmentSyncService: MessageFragmentSyncService? = null
 
 
-    // todo: restructure to remove allowmainthreadqueries
+
     val database: MeshmailDatabase by lazy {
         Room.databaseBuilder(
             this,
             MeshmailDatabase::class.java,
             "meshmail_database"
-        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
+        ).fallbackToDestructiveMigration()
+            //.allowMainThreadQueries() // todo: restructure to remove allowmainthreadqueries
+            .build()
     }
 
     override fun onCreate() {

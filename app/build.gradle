@@ -68,6 +68,9 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxjava:2.2.21'
     implementation "androidx.room:room-rxjava2:2.4.3"
 
+    // coroutines for doing UI driven DB stuff
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
 
     // for ItemTouchHandler
     implementation "androidx.recyclerview:recyclerview:1.2.1"

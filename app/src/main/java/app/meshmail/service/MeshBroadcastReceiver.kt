@@ -20,6 +20,9 @@ import app.meshmail.data.protobuf.MessageFragmentRequestOuterClass.MessageFragme
 import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import com.geeksville.mesh.MessageStatus
 import com.geeksville.mesh.NodeInfo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
@@ -52,14 +55,17 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
                     try {
                         when (pbProtocolMessage.pmtype) {
 
-                            ProtocolMessageType.SHADOW_BROADCAST ->
+                            ProtocolMessageType.SHADOW_BROADCAST -> CoroutineScope(Dispatchers.IO).launch {
                                 handleShadowBroadcast(pbProtocolMessage)
+                            }
 
-                            ProtocolMessageType.FRAGMENT_REQUEST ->
+                            ProtocolMessageType.FRAGMENT_REQUEST -> CoroutineScope(Dispatchers.IO).launch {
                                 handleFragmentRequest(pbProtocolMessage)
+                            }
 
-                            ProtocolMessageType.FRAGMENT_BROADCAST ->
+                            ProtocolMessageType.FRAGMENT_BROADCAST -> CoroutineScope(Dispatchers.IO).launch {
                                 handleFragmentBroadcast(pbProtocolMessage)
+                            }
 
                             else ->
                                 Log.d(
@@ -101,6 +107,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         // if not, add this message with shadow = true, filling in as much as we know
         // does it really even matter if it's the client? wouldn't it apply to any device?
         // since fingerprint should be reasonably unique?
+
         if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
             val newMessage = MessageEntity()
             // fixme: need to set folder based on type
@@ -114,7 +121,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
             newMessage.sender   = pbMessageShadow.sender
             newMessage.isShadow = true  // we don't yet have the body
             newMessage.hasBeenRequested = true  // this indicates to the client not to send out shadow broadcasts back to the originator
-                                                // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
+            // or for the case of the relay getting an OUTBOUND message, hasBeenRequested indicates the client already knows about it, don't send shadow broadcast
             database.messageDao().insert(newMessage)
         } else {
             Log.d("MeshBroadcastReceiver","Duplicate shadow broadcast received ${pbMessageShadow.fingerprint}. Will not add to db.")

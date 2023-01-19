@@ -6,6 +6,8 @@ import app.meshmail.MeshmailApplication
 import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import com.geeksville.mesh.data
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ClientMessagesListViewModel(context: Application) : ViewModel() {
     val app: Application = context
@@ -21,9 +23,11 @@ class ClientMessagesListViewModel(context: Application) : ViewModel() {
         _currentFolder.value = folder
     }
 
-    fun markMessageRead(message: MessageEntity, hasBeenRead: Boolean = true) {
+    suspend fun markMessageRead(message: MessageEntity, hasBeenRead: Boolean = true) {
         message.hasBeenRead = hasBeenRead
-        database.messageDao().update(message)
+        withContext(Dispatchers.IO) {
+            database.messageDao().update(message)
+        }
     }
 
     fun getPosition(message: MessageEntity): Int {

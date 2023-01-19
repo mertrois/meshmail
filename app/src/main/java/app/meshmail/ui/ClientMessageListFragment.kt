@@ -19,7 +19,10 @@ import app.meshmail.data.MessageAdapter
 import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class ClientMessageListFragment : Fragment() {
@@ -121,8 +124,10 @@ class ClientMessageListFragment : Fragment() {
                     throw Exception("Tab does not exist")
                 }
             }
-            message?.folder = newFolder
-            clientMessagesListViewModel.database.messageDao().update(message)
+            CoroutineScope(Dispatchers.IO).launch {
+                message.folder = newFolder
+                clientMessagesListViewModel.database.messageDao().update(message)
+            }
         }
     }
 
@@ -137,9 +142,11 @@ class ClientMessageListFragment : Fragment() {
     var requestListener: FragmentRequestListener? = null
 
     private fun emptyTrash() {
-        for(m in app.database.messageDao().getMessagesByFolder("TRASH")) {
-            app.database.messageFragmentDao().deleteByFingerprint(m.fingerprint)
-            app.database.messageDao().delete(m)
+        CoroutineScope(Dispatchers.IO).launch {
+            for(m in app.database.messageDao().getMessagesByFolder("TRASH")) {
+                app.database.messageFragmentDao().deleteByFingerprint(m.fingerprint)
+                app.database.messageDao().delete(m)
+            }
         }
     }
 
@@ -206,7 +213,9 @@ class ClientMessageListFragment : Fragment() {
                     messagesRecyclerView.findViewHolderForAdapterPosition(position) as MessageAdapter.ViewHolder
                 viewHolder.setTypeface(bold = false)
             }
-            clientMessagesListViewModel.markMessageRead(message)
+            CoroutineScope(Dispatchers.IO).launch {
+                clientMessagesListViewModel.markMessageRead(message)
+            }
             loadMessage(message, FragmentRequestListener.MODE_VIEW)
         })
         messagesLayoutManager = LinearLayoutManager(context)

@@ -14,6 +14,9 @@ import app.meshmail.MeshmailApplication
 import app.meshmail.R
 import app.meshmail.data.MessageEntity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class ViewMessageFragment(message: MessageEntity) : Fragment() {
@@ -76,7 +79,9 @@ class ViewMessageFragment(message: MessageEntity) : Fragment() {
         when(item.itemId) {
             R.id.move_to_archive, R.id.move_to_trash, R.id.move_to_inbox -> {
                 message.folder = item.title.toString()
-                (app as MeshmailApplication).database.messageDao().update(message)
+                CoroutineScope(Dispatchers.IO).launch {
+                    (app as MeshmailApplication).database.messageDao().update(message)
+                }
                 activity?.supportFragmentManager?.popBackStack()
                 return true
             }

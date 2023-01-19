@@ -99,7 +99,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             .commit()
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -127,11 +126,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             Log.e("MainActivity","Error binding", e)
         }
 
-        /*
-        todo: make all the services run in background, not tied to activity lifecycle
-            to continue syncing mail and/or message fragments and protocol messages
-            while scree off/activity closed, etc.
-         */
         registerReceiver(receiver, intentFilter)
         Intent(this, MailSyncService::class.java).also { intent ->  startForegroundService(intent)}
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startForegroundService(intent)}
@@ -152,7 +146,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         caller: PreferenceFragmentCompat,
         pref: Preference
     ): Boolean {
-            // Instantiate the new Fragment
             val args = pref.extras
             val fragment = supportFragmentManager.fragmentFactory.instantiate(
                 classLoader,
