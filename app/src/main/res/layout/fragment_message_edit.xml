@@ -29,7 +29,7 @@
                 android:id="@+id/message_to_edit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="To"
+                android:hint="To (hold for address book)"
                 android:inputType="textEmailAddress"
                 android:textColorHint="@color/editTextHint" />
 

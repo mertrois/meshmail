@@ -2,19 +2,25 @@ package app.meshmail.ui
 
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.database.Cursor
+import android.net.Uri
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.view.*
 import android.widget.EditText
-import androidx.fragment.app.Fragment
 import android.widget.Toast
+import androidx.fragment.app.Fragment
+import app.meshmail.MainActivity
 import app.meshmail.MeshmailApplication
 import app.meshmail.R
 import app.meshmail.android.PrefsManager
 import app.meshmail.data.MessageEntity
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,6 +37,7 @@ class EditMessageFragment(m: MessageEntity) : Fragment() {
     private lateinit var sendFAB: FloatingActionButton
     private val message: MessageEntity = MessageEntity( subject=m.subject, recipient = m.recipient, body=m.body,
                                                         serverId=m.serverId, receivedDate = m.receivedDate, folder= m.folder)
+    val REQUEST_SELECT_CONTACT = 1
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,6 +52,7 @@ class EditMessageFragment(m: MessageEntity) : Fragment() {
         subjectField = view.findViewById(R.id.message_subject_edit)
         bodyField = view.findViewById(R.id.message_body_field)
 
+        // the sender is set in app settings
         val senderName = prefs.getString("sender_name")
         val senderEmail = prefs.getString("sender_email")
         fromField.setText("$senderName <$senderEmail>")
@@ -63,7 +71,56 @@ class EditMessageFragment(m: MessageEntity) : Fragment() {
         sendFAB = view.findViewById(R.id.fabSend)
         sendFAB.setOnClickListener { onSendFABClicked() }
 
+        // setup launch address book to pick an email
+        // todo: instead of long-press to launch, add contact icon to right side of field to press
+        toField.setOnLongClickListener {
+            val selectContactIntent = Intent(Intent.ACTION_PICK).apply {
+                type = ContactsContract.Contacts.CONTENT_TYPE
+            }
+            val ctx: MainActivity = context as MainActivity
+            try {
+                startActivityForResult(selectContactIntent, REQUEST_SELECT_CONTACT)
+            } catch(e: Exception) {
+                Toast.makeText(context, "Sorry, could not launch address book", Toast.LENGTH_SHORT).show()
+            }
+            true
+        }
         return view
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode == REQUEST_SELECT_CONTACT && resultCode == Activity.RESULT_OK) {
+            val contactUri: Uri? = data?.data
+            val projection = arrayOf(ContactsContract.Contacts._ID)
+            val ctx = context as MainActivity
+            if(contactUri != null) {
+                try {
+                    val cursor: Cursor? = ctx.contentResolver.query(contactUri, projection, null, null, null)
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val id: String = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID))
+
+                        var email: String? = null
+                        val c2: Cursor? = ctx.contentResolver.query(
+                            ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+                            null,
+                            ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?",
+                            arrayOf(id),
+                            null
+                        )
+                        if (c2 != null && c2.moveToFirst()) {
+                            email = c2.getString(c2.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA))
+                            c2.close()
+                        }
+
+                        toField.setText(email)
+                    }
+                    cursor?.close()
+                } catch(e: Exception) {
+                    Toast.makeText(context, "Error getting selected email address", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun onSendFABClicked() {
@@ -113,23 +170,14 @@ ${message.body}
         prefs = app.prefs
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        //inflater.inflate(R.menu.menu_message, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        super.onOptionsItemSelected(item)
-//        when(item.itemId) {
-//            R.id.move_to_archive, R.id.move_to_trash, R.id.move_to_inbox -> {
-//                message.folder = item.title.toString()
-//                (app as MeshmailApplication).database.messageDao().update(message)
-//                activity?.supportFragmentManager?.popBackStack()
-//                return true
-//            }
-//        }
-        return false
-    }
+//    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+//        super.onCreateOptionsMenu(menu, inflater)
+//    }
+//
+//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+//        super.onOptionsItemSelected(item)
+//        return false
+//    }
 
 
 }
