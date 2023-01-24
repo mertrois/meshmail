@@ -34,6 +34,10 @@ class ClientMessagesListViewModel(context: Application) : ViewModel() {
         return messagesList.value?.indexOf(message) ?: -1
     }
 
+    fun messageAtPosition(position: Int): MessageEntity? {
+        return messagesList.value?.get(position)
+    }
+
 }
 
 // need a special factory because the ViewModel above needs access to the database, which requires application

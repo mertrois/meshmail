@@ -23,6 +23,7 @@ import com.geeksville.mesh.NodeInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
@@ -107,6 +108,7 @@ class MeshBroadcastReceiver(context: Context): BroadcastReceiver() {
         // if not, add this message with shadow = true, filling in as much as we know
         // does it really even matter if it's the client? wouldn't it apply to any device?
         // since fingerprint should be reasonably unique?
+
 
         if(database.messageDao().getByFingerprint(pbMessageShadow.fingerprint) == null) {
             val newMessage = MessageEntity()

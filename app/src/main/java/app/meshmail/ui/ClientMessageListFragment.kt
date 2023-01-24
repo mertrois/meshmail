@@ -56,8 +56,6 @@ class ClientMessageListFragment : Fragment() {
         return false
     }
 
-
-
     /*
         Listener to handle tabs; letting viewModel respond to tab changes
      */
@@ -66,7 +64,7 @@ class ClientMessageListFragment : Fragment() {
             if(tab != null) {
                 clientMessagesListViewModel.setCurrentFolder(folders[tab.position])
                 // save to prefs because savedinstacestate doesn't work with stack
-                prefs?.putInt("selectedTabPosition", tab.position)
+                prefs.putInt("selectedTabPosition", tab.position)
                 Log.d("ClientMessageListFragment","tab position is now ${tab.position}")
             }
         }
@@ -77,8 +75,7 @@ class ClientMessageListFragment : Fragment() {
 
         override fun onTabReselected(tab: TabLayout.Tab?) {
             // tap the tab to scroll to the top
-            if(messagesRecyclerView != null)
-                messagesRecyclerView.scrollToPosition(0)
+            messagesRecyclerView.scrollToPosition(0)
         }
     }
 
@@ -91,6 +88,7 @@ class ClientMessageListFragment : Fragment() {
             viewHolder: RecyclerView.ViewHolder
         ): Int {
 
+            // allowed flags depending on which folder is open
             val swipeFlags = when(tabLayout.selectedTabPosition) {
                 0 -> ItemTouchHelper.RIGHT
                 1 -> ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
@@ -109,9 +107,6 @@ class ClientMessageListFragment : Fragment() {
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            val position = viewHolder.absoluteAdapterPosition
-            val message: MessageEntity = messageAtPosition(position)
-            messageAdapter.notifyItemRemoved(position)
             val newFolder: String = when(tabLayout.selectedTabPosition) {
                 0 -> {
                     folders[1]
@@ -124,9 +119,14 @@ class ClientMessageListFragment : Fragment() {
                     throw Exception("Tab does not exist")
                 }
             }
-            CoroutineScope(Dispatchers.IO).launch {
-                message.folder = newFolder
-                clientMessagesListViewModel.database.messageDao().update(message)
+            val position = viewHolder.absoluteAdapterPosition
+            val message: MessageEntity? = clientMessagesListViewModel.messageAtPosition(position)
+            message?.let {
+                CoroutineScope(Dispatchers.IO).launch {
+                    it.folder = newFolder
+                    clientMessagesListViewModel.database.messageDao().update(it)
+                }
+                //messageAdapter.notifyItemRemoved(position)
             }
         }
     }
@@ -150,10 +150,10 @@ class ClientMessageListFragment : Fragment() {
         }
     }
 
-    fun messageAtPosition(position: Int): MessageEntity {
-        val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
-        return list[position]
-    }
+//    fun messageAtPosition(position: Int): MessageEntity {
+//        val list: List<MessageEntity> = clientMessagesListViewModel.messagesList.value!!
+//        return list[position]
+//    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -199,7 +199,7 @@ class ClientMessageListFragment : Fragment() {
         }
 
 
-        val startingFolder = prefs?.getInt("selectedTabPosition", 1)!!
+        val startingFolder = prefs.getInt("selectedTabPosition", 1) ?: 1
         // select starting tab
         tabLayout.selectTab(tabLayout.getTabAt(startingFolder))
         // set current folder to correspond

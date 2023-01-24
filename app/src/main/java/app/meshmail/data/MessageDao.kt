@@ -7,6 +7,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import io.reactivex.Flowable
+import kotlinx.coroutines.flow.Flow
+
 
 @Dao
 interface MessageDao {
@@ -30,6 +32,9 @@ interface MessageDao {
 
     @Query("select * from messages where type = 'OUTBOUND' and hasBeenSent = 0 and isShadow = 0")
     fun getReadyToSendMessages(): List<MessageEntity>
+
+    @Query("select * from messages where type = 'OUTBOUND' and hasBeenSent = 0 and isShadow = 0")
+    fun getFlowableReadyToSendMessages(): Flow<List<MessageEntity>>
 
     @Query("select count(*) from messages where type = 'OUTBOUND' and folder = 'OUTBOX' ")
     fun getOutboxCount(): LiveData<Int>

@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.work.impl.Schedulers
 import app.meshmail.MeshmailApplication
 import app.meshmail.R
 import app.meshmail.android.Parameters
@@ -24,6 +25,9 @@ import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.subscribe
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -57,12 +61,14 @@ class MailSyncService : Service() {
     override fun onCreate() {
         super.onCreate()
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
-        scheduledExecutor!!.scheduleWithFixedDelay(
+
+        scheduledExecutor?.scheduleWithFixedDelay(
             { syncMail() },
             0,
             Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
+
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -87,8 +93,6 @@ class MailSyncService : Service() {
             .setSmallIcon(app.meshmail.R.drawable.gesture_24px)
             .build()
 
-
-
         // Start the service in the foreground
         startForeground(1, notification)
 
@@ -97,7 +101,7 @@ class MailSyncService : Service() {
 
     override fun onDestroy() {
         stopForeground(true)
-        scheduledExecutor!!.shutdown()
+        scheduledExecutor?.shutdown()
         super.onDestroy()
     }
 
@@ -109,7 +113,7 @@ class MailSyncService : Service() {
 
         if(prefs.getBoolean("relay_mode", false)) {
             // get newly arrived messages
-            val emails: Array<Message>? = getEmails() // todo: only pull unseen messages
+            val emails: Array<Message>? = getEmails()
             Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
             // store them
             if (emails != null)
@@ -275,7 +279,7 @@ class MailSyncService : Service() {
         pbMessage.recipient = msgEnt.recipient
         pbMessage.sender = msgEnt.sender
         pbMessage.serverId = msgEnt.serverId
-        pbMessage.receivedDate = if(msgEnt.receivedDate != null) dateToMillis(msgEnt.receivedDate!!) else 0
+        pbMessage.receivedDate = dateToMillis(msgEnt.receivedDate)
         pbMessage.fingerprint = msgEnt.fingerprint
         pbMessage.type = msgEnt.type
 

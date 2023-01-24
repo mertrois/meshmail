@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         // lock to portrait until code to recreate state of fragments can be completed
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        // todo: remove; only for dev. Clean up before running.
+        // only for dev. Clean up before running.
 //      database.messageDao().deleteAll()
 //      database.messageFragmentDao().deleteAll()
 
@@ -146,22 +146,22 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         caller: PreferenceFragmentCompat,
         pref: Preference
     ): Boolean {
-            val args = pref.extras
-            val fragment = supportFragmentManager.fragmentFactory.instantiate(
-                classLoader,
-                pref.fragment ?: return false
-            ).apply {
-                arguments = args
-                setTargetFragment(caller, 0)
-            }
-            // Replace the existing Fragment with the new Fragment
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
-            title = pref.title
-            return true
+        val args = pref.extras
+        val fragment = supportFragmentManager.fragmentFactory.instantiate(
+            classLoader,
+            pref.fragment ?: return false
+        ).apply {
+            arguments = args
+            setTargetFragment(caller, 0)
         }
+        // Replace the existing Fragment with the new Fragment
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+        title = pref.title
+        return true
+    }
 
 }
 

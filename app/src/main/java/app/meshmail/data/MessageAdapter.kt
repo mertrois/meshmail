@@ -28,7 +28,6 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
         private val normFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         private val boldFace: Typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
 
-
         fun setTypeface(bold: Boolean) {
             var useFace = normFace
             if (bold) useFace = boldFace
@@ -98,7 +97,6 @@ class MessageAdapter(private val onClickListener: OnClickListener) :
             return oldItem == newItem
         }
     }
-
 
     private fun getFormattedDate(message: MessageEntity): String {
         if(message.receivedDate == null) return ""  // shadow messages will have a null date field.
