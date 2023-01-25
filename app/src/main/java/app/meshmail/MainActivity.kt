@@ -12,10 +12,8 @@ import android.view.MenuItem
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import app.meshmail.MeshmailApplication
 import app.meshmail.android.Parameters
 import app.meshmail.android.PrefsManager
-import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
@@ -26,7 +24,6 @@ import app.meshmail.ui.*
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, ClientMessageListFragment.FragmentRequestListener {
     private val meshServiceManager: MeshServiceManager by lazy { (application as MeshmailApplication).meshServiceManager }
-    private val database: MeshmailDatabase by lazy { (application as MeshmailApplication).database }
     private lateinit var prefs: PrefsManager
     private val serviceIntent = Intent().apply {
         setClassName(
@@ -86,12 +83,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     override fun loadMessageFragment(message: MessageEntity, mode: Int) {
-        val fragment: Fragment = if(mode == ClientMessageListFragment.FragmentRequestListener.MODE_VIEW)
-            ViewMessageFragment(message)
-        else if(mode == ClientMessageListFragment.FragmentRequestListener.MODE_EDIT)
-            EditMessageFragment(message)
-        else
-            throw RuntimeException("Illegal argument to loadMessageFragment")
+        val fragment: Fragment = when (mode) {
+            ClientMessageListFragment.FragmentRequestListener.MODE_VIEW -> ViewMessageFragment(message)
+            ClientMessageListFragment.FragmentRequestListener.MODE_EDIT -> EditMessageFragment(message)
+            else -> throw RuntimeException("Illegal argument to loadMessageFragment")
+        }
         supportFragmentManager
             .beginTransaction()
             .replace(R.id.fragment_container, fragment)
@@ -107,11 +103,13 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         setContentView(R.layout.activity_main)
 
         // lock to portrait until code to recreate state of fragments can be completed
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // only for dev. Clean up before running.
-//      database.messageDao().deleteAll()
-//      database.messageFragmentDao().deleteAll()
+//        CoroutineScope(Dispatchers.IO).launch {
+//            database.messageDao().deleteAll()
+//            database.messageFragmentDao().deleteAll()
+//        }
 
         // load initial fragment based on mode the app is in
         supportFragmentManager
