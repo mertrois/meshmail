@@ -68,7 +68,6 @@ class MailSyncService : Service() {
             Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
-
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -114,10 +113,11 @@ class MailSyncService : Service() {
         if(prefs.getBoolean("relay_mode", false)) {
             // get newly arrived messages
             val emails: Array<Message>? = getEmails()
-            Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
             // store them
-            if (emails != null)
+            if (emails != null) {
+                Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
                 storeMessages(emails)
+            }
 
             // relay-side; get OUTBOUND, non-shadow, non-sent messages, pass to smtp
             val sendableMessages = database.messageDao().getReadyToSendMessages()
@@ -357,11 +357,10 @@ class MailSyncService : Service() {
         pbProtocolMessage.pmtype = ProtocolMessageType.SHADOW_BROADCAST
         val pbMessageShadow = MessageShadow.newBuilder()
         pbMessageShadow.fingerprint = message.fingerprint
-        pbMessageShadow.subject = message.subject
+        pbMessageShadow.subject = if (message.subject.length > 50) message.subject.substring(0,50)+"..." else message.subject
         pbMessageShadow.nFragments = message.nFragments
         pbMessageShadow.sender = message.sender
-        pbMessageShadow.receivedDate = if(message.receivedDate != null) dateToMillis(message.receivedDate!!) else 0
-
+        pbMessageShadow.receivedDate = dateToMillis(message.receivedDate)
 
         pbProtocolMessage.messageShadow = pbMessageShadow.build()
         // this is ready to send over mesh network to announce a new message has come in
@@ -382,21 +381,12 @@ class MailSyncService : Service() {
             put("mail.imaps.host", prefs.getString("imap_server",""))
             put("mail.imaps.port", prefs.getString("imap_server_port","0").toInt())
 
-
-            // TLS
-//            put("mail.smtp.host",  prefs?.getString("smtp_server",""))
-//            put("mail.smtp.port",  prefs?.getString("smtp_server_port","0")?.toInt())
-//            put("mail.smtp.auth", "true")
-//            put("mail.smtp.starttls.enable", "true")
-
-
             // props for SSL Email
             put("mail.smtp.host", prefs.getString("smtp_server",""))
             put("mail.smtp.socketFactory.port", prefs.getString("smtp_server_port","0").toInt())
             put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
             put("mail.smtp.auth", "true")
             put("mail.smtp.port",  prefs.getString("smtp_server_port","0").toInt())
-
 
         }
 
