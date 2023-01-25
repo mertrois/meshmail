@@ -60,6 +60,7 @@ abstract class MeshmailDatabase : RoomDatabase() {
                     pbMessage = MessageOuterClass.Message.parseFrom(buffer)
                     // update our Message in the DB
                     message.body = pbMessage.body
+                    message.subject = pbMessage.subject
                     message.serverId = pbMessage.serverId
                     message.recipient = pbMessage.recipient
                     message.sender = pbMessage.sender
