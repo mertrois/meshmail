@@ -79,10 +79,10 @@ abstract class StatusInstance(initialValue: String = "") {
 class IMAPStatusInstance : StatusInstance() {
     override fun renderStatusString() {
         var status = ""
-        if(logicalStatus != null) {
-            status = if(logicalStatus == true) "Mail checked " else "failed "
-            if(timeUpdated != null) {
-                status += "${getTimeDelta()} ago"
+        if(_message != null) {
+            status += _message
+            if (timeUpdated != null) {
+                status += " ${getTimeDelta()} ago"
             }
         } else {
             status = "idle"

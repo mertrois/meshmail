@@ -25,14 +25,20 @@ import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import com.sun.mail.imap.IMAPFolder
+import com.sun.mail.imap.IMAPStore
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.subscribe
+import kotlinx.coroutines.launch
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import javax.mail.*
+import javax.mail.event.MessageCountAdapter
+import javax.mail.event.MessageCountEvent
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 import javax.mail.search.FlagTerm
@@ -58,6 +64,10 @@ class MailSyncService : Service() {
         (application as MeshmailApplication).statusManager
     }
 
+    private var serviceRunning = false
+
+    private var inbox: IMAPFolder? = null
+
     override fun onCreate() {
         super.onCreate()
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
@@ -68,6 +78,25 @@ class MailSyncService : Service() {
             Parameters.MAIL_SYNC_PERIOD,
             TimeUnit.SECONDS
         )
+
+        serviceRunning = true
+        if(prefs.getBoolean("relay_mode", false)) {
+            CoroutineScope(Dispatchers.IO).launch {
+                while (serviceRunning) {
+                    try {
+                        configureIdle()
+                    } catch (e: Exception) {
+                        /*
+                            if internet connection is lost, we'll get this exception. Add a delay before trying
+                            again to prevent a runaway loop.
+                         */
+                        kotlinx.coroutines.delay(5000L)
+                        Log.e("MailSyncService", "IMAP connection error", e)
+                        statusManager.imapStatus.setStatus(false, "Connection to server lost")
+                    }
+                }
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -101,6 +130,8 @@ class MailSyncService : Service() {
     override fun onDestroy() {
         stopForeground(true)
         scheduledExecutor?.shutdown()
+        serviceRunning = false  // disallow restart when server connect is closed
+        inbox?.forceClose()     // if idling, cause return immediately
         super.onDestroy()
     }
 
@@ -111,13 +142,6 @@ class MailSyncService : Service() {
     private fun syncMail() {
 
         if(prefs.getBoolean("relay_mode", false)) {
-            // get newly arrived messages
-            val emails: Array<Message>? = getEmails()
-            // store them
-            if (emails != null) {
-                Log.d(this.javaClass.name, "there are ${emails?.size} unseen emails in the inbox")
-                storeMessages(emails)
-            }
 
             // relay-side; get OUTBOUND, non-shadow, non-sent messages, pass to smtp
             val sendableMessages = database.messageDao().getReadyToSendMessages()
@@ -136,7 +160,41 @@ class MailSyncService : Service() {
         broadcastNecessaryMessageShadows()
     }
 
+    /*
+        Blocking call to set up a connection to server and wait for mail to arrive. Must be rearmed after
+        new mail arrives--causes idle() to return
+     */
+    private fun configureIdle() {
 
+        val newMessageHandler = object : MessageCountAdapter() {
+            override fun messagesAdded(e: MessageCountEvent) {
+                val emails = e.messages
+                Log.d("MailSyncService", "received ${emails.size} new messages. storing")
+                statusManager.imapStatus.setStatus(true, "Processing new mail")
+                storeMessages(emails)
+            }
+        }
+
+        val imapUsername = prefs.getString("imap_username", "")
+        val imapPassword = prefs.getString("imap_password", "")
+
+        val session = Session.getInstance(getMailProperties())
+        val store: IMAPStore = session.getStore("imaps") as IMAPStore
+        Log.d("MailSyncService", "connecting to server")
+        store.connect(imapUsername, imapPassword)
+        inbox = store.getFolder("INBOX") as IMAPFolder
+        inbox?.open(Folder.READ_WRITE)
+        inbox?.addMessageCountListener(newMessageHandler)
+        statusManager.imapStatus.setStatus(true, "Listening for new mail...")
+        Log.d("MailSyncService", "beginning idle")
+        inbox?.idle()
+
+        Log.d("MailSyncService", "leaving idle")
+    }
+
+    /*
+        Older polling method, can be used as fallback
+     */
     private fun getEmails(): Array<Message>? {
         val imapUsername = prefs.getString("imap_username","")
         val imapPassword = prefs.getString("imap_password","")
@@ -374,6 +432,10 @@ class MailSyncService : Service() {
     private fun getMailProperties(): Properties {
         // rebuild each time in case properties change to avoid restart program.
         val properties = Properties().apply {
+
+            // for idle
+            put("mail.store.protocol", "imaps")
+            put("mail.imaps.partialfetch", "false")
 
             // IMAP Properties
             put("mail.imap.ssl.enable", "true")
