@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import app.meshmail.data.protobuf.MessageOuterClass
+import app.meshmail.service.decompressData
 import app.meshmail.service.millisToDate
 
 @Database(entities = [MessageEntity::class, MessageFragmentEntity::class], version = 10, exportSchema = false)
@@ -59,7 +60,8 @@ abstract class MeshmailDatabase : RoomDatabase() {
                     // now we can conjure a protobuf message from the concatenated byte arrays
                     pbMessage = MessageOuterClass.Message.parseFrom(buffer)
                     // update our Message in the DB
-                    message.body = pbMessage.body
+                    // message.body = pbMessage.body // old simple method
+                    message.body = decompressData(pbMessage.data.toByteArray())
                     message.subject = pbMessage.subject
                     message.serverId = pbMessage.serverId
                     message.recipient = pbMessage.recipient

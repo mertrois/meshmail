@@ -14,12 +14,16 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import app.meshmail.android.Parameters
 import app.meshmail.android.PrefsManager
+import app.meshmail.data.MeshmailDatabase
 import app.meshmail.data.MessageEntity
 import app.meshmail.service.MailSyncService
 import app.meshmail.service.MeshBroadcastReceiver
 import app.meshmail.service.MeshServiceManager
 import app.meshmail.service.MessageFragmentSyncService
 import app.meshmail.ui.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, ClientMessageListFragment.FragmentRequestListener {
@@ -31,6 +35,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             "com.geeksville.mesh.service.MeshService"
         )
     }
+
+    private val database: MeshmailDatabase by lazy { (applicationContext as MeshmailApplication).database }
 
     private val serviceConnection = object: ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -126,6 +132,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
         registerReceiver(receiver, intentFilter)
         Intent(this, MailSyncService::class.java).also { intent ->  startForegroundService(intent)}
+
         Intent(this, MessageFragmentSyncService::class.java).also { intent -> startForegroundService(intent)}
 
         val appType: String = if(prefs.getBoolean("relay_mode")) "relay" else "client"

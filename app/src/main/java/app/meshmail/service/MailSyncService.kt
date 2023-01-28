@@ -25,6 +25,7 @@ import app.meshmail.data.protobuf.ProtocolMessageOuterClass.ProtocolMessage
 import app.meshmail.data.protobuf.ProtocolMessageTypeOuterClass.ProtocolMessageType
 import app.meshmail.util.md5
 import app.meshmail.util.toHex
+import com.google.protobuf.kotlin.toByteString
 import com.sun.mail.imap.IMAPFolder
 import com.sun.mail.imap.IMAPStore
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,7 @@ class MailSyncService : Service() {
     }
 
     private var serviceRunning = false
+    private var lastIdle: Date = Date()
 
     private var inbox: IMAPFolder? = null
 
@@ -143,6 +145,18 @@ class MailSyncService : Service() {
 
         if(prefs.getBoolean("relay_mode", false)) {
 
+            /*
+                If the connection has been idling too long, sometimes the mail server will kill the connection quietly
+                and no new mail will come in. This preemptively restarts it every x minutes. Gmail is known to kill at 10m
+                so best to not let this go over 9
+             */
+            val now = Date()
+            val elapsedSeconds = (now.time - lastIdle.time) / 1000
+            if(elapsedSeconds > 60*7) {     // 7 minutes
+                inbox?.forceClose()
+                Log.d("MailSyncService", "Force-restarting connection")
+            }
+
             // relay-side; get OUTBOUND, non-shadow, non-sent messages, pass to smtp
             val sendableMessages = database.messageDao().getReadyToSendMessages()
             for(message in sendableMessages) {
@@ -187,6 +201,7 @@ class MailSyncService : Service() {
         inbox?.addMessageCountListener(newMessageHandler)
         statusManager.imapStatus.setStatus(true, "Listening for new mail...")
         Log.d("MailSyncService", "beginning idle")
+        lastIdle = Date()   // log the time of the idle operation
         inbox?.idle()
 
         Log.d("MailSyncService", "leaving idle")
@@ -333,7 +348,9 @@ class MailSyncService : Service() {
 
         val pbMessage = MessageOuterClass.Message.newBuilder()
         pbMessage.subject = msgEnt.subject
-        pbMessage.body = msgEnt.body    // TODO: maybe perform LZ compression here if needed
+        // todo: use another protobuf to encode data, enum for image, text, etc.
+        pbMessage.body = "" //msgEnt.body
+        pbMessage.data = compressString(msgEnt.body ?: "").toByteString()
         pbMessage.recipient = msgEnt.recipient
         pbMessage.sender = msgEnt.sender
         pbMessage.serverId = msgEnt.serverId
