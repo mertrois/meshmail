@@ -24,13 +24,13 @@ class Parameters {
         more advanced control take care of timing?
         This determines the frequency of the queue loop
          */
-        val SEND_QUEUE_WAIT: Long = 100     // milliseconds between putting packets on wire
+        val SEND_QUEUE_WAIT: Long = 200     // milliseconds between putting packets on wire
 
 
         /*
             If we haven't been nudged to send in this many ms, go ahead and release another packet
          */
-        val QUEUE_TIMEOUT_THRESHOLD: Long = 3500
+        val QUEUE_TIMEOUT_THRESHOLD: Long = 7000
 
         /* how many messages should we look at per sync cycle to find missing fragments for?
             fewer can cause repeats, too many can cause many messages only partly loaded
@@ -41,13 +41,13 @@ class Parameters {
             the outer "for loop" runs FRAG_SYNC_SHADOWS_TO_ANALYZE times, and the inner, up to MAX_FRAGS_AT_ONCE times
             making this higher than one should cut down on duplicates
          */
-        val MAX_FRAGS_AT_ONCE: Int = 3
+        val MAX_FRAGS_AT_ONCE: Int = 20
 
 
         /*
             If the send queue drops below this size, welcome to add more
          */
-        val MIN_DESIRED_QUEUE_SIZE: Int = 3
+        val MIN_DESIRED_QUEUE_SIZE: Int = 2
 
     }
 }
