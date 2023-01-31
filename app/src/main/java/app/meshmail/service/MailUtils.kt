@@ -25,19 +25,34 @@ fun extractReadableBody(message: Message): String {
                 body.append(part.content as String)
             } else if (part.isMimeType("text/html")) {
                 // This part is HTML, so we need to strip the HTML tags
-                var html = part.content as String
-
-                //var regex = Regex("<style[^>]*>.*</[^>]*>")
-
-                // strip out all html tags
-                val regex = Regex("<[^>]*>")
-                html = regex.replace(html,"")
-
-                body.append(regex.replace(html, ""))
+                body.append(sanitizeText(part.content as String))
             }
         }
     }
     return body.toString()
+}
+
+fun sanitizeText(input: String) : String {
+    var clean: String = input
+
+    var regex = Regex("<style.*?</style>", RegexOption.DOT_MATCHES_ALL)
+    clean = regex.replace(clean, "")
+
+    // cut any javascripts
+    regex = Regex("<script.*?</script>", RegexOption.DOT_MATCHES_ALL)
+    clean = regex.replace(clean, "")
+
+    // todo: replace <br> and the like with \r\n
+
+    // strip out all remaining html tags
+    regex = Regex("<[^>]*>")
+    clean = regex.replace(clean,"")
+
+    // remove excessive blocks of whitespace
+    regex = Regex("\\s{3,}", RegexOption.DOT_MATCHES_ALL)
+    clean = regex.replace(clean, " ")
+
+    return clean
 }
 
 fun compressString(input: String) : ByteArray {
